@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skribbl</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SCREEN: LOBBY
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="screen-lobby" class="screen active">
+    <div class="lobby-card">
+      <h1 class="logo">✏️ Skribbl</h1>
+      <p class="tagline">Draw it. Guess it. Win it.</p>
+
+      <div class="form-group">
+        <label for="username-input">Your Name</label>
+        <input id="username-input" type="text" placeholder="Enter your name" maxlength="20" autocomplete="off" />
+      </div>
+
+      <div class="lobby-actions">
+        <button id="btn-create" class="btn btn-primary btn-lg">Create Room</button>
+        <div class="divider">or</div>
+        <div class="join-row">
+          <input id="room-code-input" type="text" placeholder="Room code" maxlength="4" class="code-input" autocomplete="off" />
+          <button id="btn-join" class="btn btn-secondary">Join</button>
+        </div>
+      </div>
+
+      <p id="lobby-error" class="error-msg hidden"></p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SCREEN: WAITING ROOM
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="screen-waiting" class="screen">
+    <div class="waiting-card">
+      <h2>Waiting Room</h2>
+      <div class="room-code-display">
+        Room Code: <span id="display-room-code" class="code-badge"></span>
+        <button id="btn-copy-code" class="btn btn-ghost btn-sm" title="Copy code">📋</button>
+      </div>
+
+      <div class="waiting-layout">
+        <div class="player-list-section">
+          <h3>Players (<span id="player-count">0</span>)</h3>
+          <ul id="waiting-player-list" class="player-list"></ul>
+        </div>
+
+        <div id="host-config" class="host-config hidden">
+          <h3>Game Settings</h3>
+          <div class="config-row">
+            <label for="cfg-rounds">Rounds</label>
+            <input id="cfg-rounds" type="range" min="1" max="10" value="3" />
+            <span id="cfg-rounds-val">3</span>
+          </div>
+          <div class="config-row">
+            <label for="cfg-time">Draw Time</label>
+            <input id="cfg-time" type="range" min="30" max="120" step="10" value="80" />
+            <span id="cfg-time-val">80s</span>
+          </div>
+          <button id="btn-start" class="btn btn-primary btn-lg" disabled>
+            Start Game (need 2+ players)
+          </button>
+        </div>
+
+        <div id="guest-waiting" class="guest-waiting hidden">
+          <p>Waiting for the host to start the game...</p>
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SCREEN: GAME
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="screen-game" class="screen">
+
+    <!-- Top Bar -->
+    <div id="top-bar">
+      <div id="round-indicator" class="top-pill">Round <span id="current-round">1</span>/<span id="total-rounds">3</span></div>
+
+      <div id="word-area">
+        <div id="word-hint"></div>
+        <div id="drawer-choosing-msg" class="hidden">
+          <span id="choosing-name"></span> is choosing a word…
+        </div>
+        <div id="word-choices" class="hidden"></div>
+      </div>
+
+      <div id="timer-area">
+        <div id="timer-number">80</div>
+        <div id="timer-bar-track">
+          <div id="timer-bar"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Area -->
+    <div id="game-main">
+
+      <!-- Sidebar: Scoreboard -->
+      <div id="sidebar">
+        <h3>Players</h3>
+        <ul id="score-list"></ul>
+      </div>
+
+      <!-- Canvas Column: canvas + tool panel stacked -->
+      <div id="canvas-column">
+
+        <div id="canvas-area">
+          <canvas id="canvas" width="800" height="600"></canvas>
+
+          <!-- Countdown Overlay -->
+          <div id="countdown-overlay" class="hidden">
+            <div id="countdown-number"></div>
+          </div>
+        </div>
+
+        <!-- Tool Panel (drawer only) -->
+        <div id="tool-panel" class="hidden">
+          <div id="color-palette"></div>
+
+          <div id="brush-sizes">
+            <button class="size-btn active" data-size="4" style="--sz:8px"></button>
+            <button class="size-btn" data-size="10" style="--sz:14px"></button>
+            <button class="size-btn" data-size="20" style="--sz:22px"></button>
+          </div>
+
+          <button id="btn-eraser" class="tool-btn" title="Eraser">🧹</button>
+          <button id="btn-clear" class="tool-btn" title="Clear canvas">🗑️</button>
+        </div>
+
+      </div>
+
+      <!-- Chat Panel -->
+      <div id="chat-panel">
+        <div id="chat-messages"></div>
+        <div id="chat-input-row">
+          <input id="chat-input" type="text" placeholder="Type your guess…" maxlength="100" autocomplete="off" />
+          <button id="btn-send" class="btn btn-primary btn-sm">Send</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       SCREEN: END
+  ══════════════════════════════════════════════════════════════════ -->
+  <div id="screen-end" class="screen">
+    <div class="end-container">
+
+      <section id="leaderboard-section">
+        <h2>🏆 Final Scores</h2>
+        <ol id="final-score-list" class="final-score-list"></ol>
+        <button id="btn-play-again" class="btn btn-primary btn-lg hidden">Play Again</button>
+      </section>
+
+      <section id="gallery-section">
+        <h2>🖼️ Drawing Gallery</h2>
+        <div id="gallery-grid"></div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
