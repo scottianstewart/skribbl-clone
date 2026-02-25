@@ -1,20 +1,28 @@
 /* ─── Tokens ──────────────────────────────────────────────────────────────── */
 :root {
-  --gold:       #d4a535;
+  --gold: #d4a535;
   --gold-light: #f0c96a;
-  --gold-dark:  #8b6520;
-  --wall:       #1a0c04;
-  --wall-mid:   #2a1508;
-  --plaque-bg:  #1e1206;
-  --plaque-gold:#c9953a;
-  --font-serif: 'Playfair Display', Georgia, serif;
-  --font-sans:  'Nunito', system-ui, sans-serif;
+  --gold-dark: #8b6520;
+  --wall: #1a0c04;
+  --wall-mid: #2a1508;
+  --plaque-bg: #1e1206;
+  --plaque-gold: #c9953a;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: "Nunito", system-ui, sans-serif;
 }
 
 /* ─── Reset / Base ────────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+}
 
 body {
   font-family: var(--font-sans);
@@ -42,9 +50,8 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 12px 28px;
-  background: rgba(15, 6, 1, 0.88);
+
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(212, 165, 53, 0.25);
 }
 
 .nav-back {
@@ -56,7 +63,9 @@ body {
   letter-spacing: 0.5px;
   transition: color 0.15s;
 }
-.nav-back:hover { color: var(--gold-light); }
+.nav-back:hover {
+  color: var(--gold-light);
+}
 
 .nav-title {
   font-family: var(--font-serif);
@@ -77,10 +86,17 @@ body {
   transition: all 0.2s;
   display: flex;
   align-items: center;
+  color: var(--gold);
   justify-content: center;
 }
-.music-btn:hover  { border-color: var(--gold); background: rgba(212, 165, 53, 0.1); }
-.music-btn.playing { border-color: var(--gold); background: rgba(212, 165, 53, 0.18); }
+.music-btn:hover {
+  border-color: var(--gold);
+  background: rgba(212, 165, 53, 0.1);
+}
+.music-btn.playing {
+  border-color: var(--gold);
+  background: rgba(212, 165, 53, 0.18);
+}
 
 /* ─── Header ─────────────────────────────────────────────────────────────── */
 .gallery-header {
@@ -107,17 +123,6 @@ body {
   letter-spacing: 1px;
 }
 
-/* Gold rule under header */
-.gallery-header::after {
-  content: '— ⚜ —';
-  display: block;
-  margin-top: 20px;
-  color: var(--gold-dark);
-  font-family: var(--font-serif);
-  font-size: 20px;
-  letter-spacing: 8px;
-}
-
 /* ─── Status messages ─────────────────────────────────────────────────────── */
 .status-message {
   text-align: center;
@@ -140,17 +145,34 @@ body {
   padding-bottom: 2px;
   transition: color 0.15s;
 }
-.play-link:hover { color: var(--gold-light); }
+.play-link:hover {
+  color: var(--gold-light);
+}
 
 .loading-dots::after {
-  content: '…';
+  content: "…";
   animation: dots 1.2s steps(3, end) infinite;
   display: inline-block;
   width: 1.2em;
 }
-@keyframes dots { 0%,20% { content: '.'; } 40%,60% { content: '..'; } 80%,100% { content: '...'; } }
+@keyframes dots {
+  0%,
+  20% {
+    content: ".";
+  }
+  40%,
+  60% {
+    content: "..";
+  }
+  80%,
+  100% {
+    content: "...";
+  }
+}
 
-.hidden { display: none !important; }
+.hidden {
+  display: none !important;
+}
 
 /* ─── Grid ────────────────────────────────────────────────────────────────── */
 #gallery-main {
@@ -163,72 +185,61 @@ body {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 72px 56px;
-  padding: 20px 0 40px;
+  padding: 64px 0 40px;
 }
 
 /* ─── Painting / Frame ────────────────────────────────────────────────────── */
 .painting-wrapper {
   position: relative;
-  /* Space for the frame corners that extend outside */
-  margin: 18px;
-  transition: transform 0.3s ease, filter 0.3s ease;
-  cursor: default;
+  margin: 20px;
+  transition:
+    transform 0.3s ease,
+    filter 0.3s ease;
+  cursor: pointer;
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.65));
 }
 
 .painting-wrapper:hover {
   transform: translateY(-6px) scale(1.02);
-  filter: drop-shadow(0 24px 48px rgba(0,0,0,0.7));
+  filter: drop-shadow(0 24px 52px rgba(0, 0, 0, 0.85));
 }
 
-/* Multi-layer ornate golden frame */
 .frame-inner {
-  border: 3px solid var(--gold-dark);
-  box-shadow:
-    inset 0 0 0 2px rgba(212, 165, 53, 0.2),
-    0 0 0 3px var(--gold),
-    0 0 0 5px var(--gold-dark),
-    0 0 0 8px #1e1004,
-    0 0 0 11px var(--gold),
-    0 0 0 13px var(--gold-dark),
-    0 0 0 17px #0e0802,
-    0 12px 48px rgba(0,0,0,0.7);
-  background: #0e0802;
+  background: #fff;
 }
-
-/* Corner ornaments */
-.frame-corner {
-  position: absolute;
-  font-size: 20px;
-  color: var(--gold);
-  z-index: 2;
-  text-shadow: 0 0 8px rgba(212, 165, 53, 0.6);
-  line-height: 1;
-  pointer-events: none;
-  /* Sit right on the outermost frame ring */
-}
-.frame-corner.tl { top:  -26px; left:  -26px; }
-.frame-corner.tr { top:  -26px; right: -26px; transform: scaleX(-1); }
-.frame-corner.bl { bottom: -26px; left:  -26px; transform: scaleY(-1); }
-.frame-corner.br { bottom: -26px; right: -26px; transform: scale(-1); }
 
 /* ─── Canvas (the drawing itself) ────────────────────────────────────────── */
 .painting-canvas {
+  position: relative;
   line-height: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.painting-canvas img {
+.painting-canvas .art-img {
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: contain;
   background: #ffffff;
   display: block;
+  position: relative;
+  z-index: 0;
+}
+
+/* Real frame PNG overlay — transparent center reveals art beneath */
+.frame-overlay {
+  position: absolute;
+  top: -20%;
+  left: -13%;
+  width: 126%;
+  height: 140%;
+  pointer-events: none;
+  z-index: 2;
+  object-fit: fill;
 }
 
 /* ─── Plaque ──────────────────────────────────────────────────────────────── */
 .painting-plaque {
-  background: var(--plaque-bg);
-  padding: 14px 16px 16px;
+  padding: 32px 16px 16px;
   text-align: center;
   border-top: 2px solid rgba(212, 165, 53, 0.2);
 }
@@ -236,7 +247,12 @@ body {
 .plaque-divider {
   width: 40px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--gold-dark), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--gold-dark),
+    transparent
+  );
   margin: 0 auto 10px;
 }
 
@@ -265,6 +281,112 @@ body {
   font-family: var(--font-sans);
 }
 
+/* ─── Lightbox ────────────────────────────────────────────────────────────── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  cursor: pointer;
+}
+
+.lightbox-content {
+  position: relative;
+  z-index: 1;
+  width: min(680px, 90vw);
+  animation: lb-in 0.22s ease;
+}
+
+@keyframes lb-in {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.lightbox-close {
+  position: absolute;
+  top: -96px;
+  right: -80px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--gold);
+  border: none;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a0c04;
+  cursor: pointer;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s,
+    transform 0.15s;
+}
+.lightbox-close:hover {
+  background: var(--gold-light);
+  transform: scale(1.1);
+}
+
+.lightbox-frame-area {
+  position: relative;
+  line-height: 0;
+}
+
+.lightbox-art {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  background: #fff;
+  display: block;
+  position: relative;
+  z-index: 0;
+}
+
+.lightbox-frame {
+  position: absolute;
+  top: -20%;
+  left: -13%;
+  width: 126%;
+  height: 140%;
+  pointer-events: none;
+  z-index: 2;
+  object-fit: fill;
+}
+
+.lightbox-plaque {
+  padding: 48px 20px 20px;
+  text-align: center;
+  border-top: 2px solid rgba(212, 165, 53, 0.2);
+}
+
+.lightbox-plaque .plaque-word {
+  font-size: 22px;
+}
+.lightbox-plaque .plaque-meta {
+  font-size: 15px;
+  margin-top: 6px;
+}
+.lightbox-plaque .plaque-date {
+  font-size: 13px;
+  margin-top: 6px;
+}
+
 /* ─── Load More ───────────────────────────────────────────────────────────── */
 .load-more-row {
   text-align: center;
@@ -288,4 +410,7 @@ body {
   background: rgba(212, 165, 53, 0.08);
   border-color: var(--gold);
 }
-.btn-load-more:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-load-more:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

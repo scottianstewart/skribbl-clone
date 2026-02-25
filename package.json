@@ -1,5 +1,5 @@
 {
-  "name": "skribbl-clone",
+  "name": "lunch-and-draw",
   "version": "1.0.0",
   "description": "Multiplayer drawing and guessing game",
   "main": "server.js",

@@ -1,122 +1,193 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Grand Gallery — Skribbl</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Nunito:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="gallery.css" />
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Grand Gallery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Nunito:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="gallery.css" />
+  </head>
+  <body>
+    <nav class="gallery-nav">
+      <a href="/" class="nav-back">← Play</a>
 
-  <nav class="gallery-nav">
-    <a href="/" class="nav-back">← Play</a>
-    <span class="nav-title">✏️ Skribbl</span>
-    <button id="music-btn" class="music-btn" title="Toggle music">🎵</button>
-  </nav>
+      <button id="music-btn" class="music-btn" title="Toggle music">🎵</button>
+    </nav>
 
-  <header class="gallery-header">
-    <h1>The Grand Gallery</h1>
-    <p class="gallery-subtitle">Masterworks from the ages</p>
-  </header>
+    <header class="gallery-header">
+      <h1>The Grand Gallery</h1>
+      <p class="gallery-subtitle">Masterworks from the ages</p>
+    </header>
 
-  <main id="gallery-main">
-    <div id="loading-state" class="status-message">
-      <span class="loading-dots">Loading masterworks</span>
+    <main id="gallery-main">
+      <div id="loading-state" class="status-message">
+        <span class="loading-dots">Loading masterworks</span>
+      </div>
+      <div id="empty-state" class="status-message hidden">
+        <p>The gallery awaits its first masterwork.</p>
+        <a href="/" class="play-link">Play a game to fill it →</a>
+      </div>
+      <div id="paintings-grid" class="paintings-grid"></div>
+      <div id="load-more-row" class="load-more-row hidden">
+        <button id="btn-load-more" class="btn-load-more">
+          Load more masterworks
+        </button>
+      </div>
+    </main>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="lightbox hidden" role="dialog" aria-modal="true" aria-label="Painting detail">
+      <div class="lightbox-backdrop"></div>
+      <div class="lightbox-content">
+        <button class="lightbox-close" aria-label="Close">✕</button>
+        <div class="lightbox-frame-area">
+          <img class="lightbox-art" src="" alt="">
+          <img class="lightbox-frame" src="/frame.png" alt="" aria-hidden="true">
+        </div>
+        <div class="lightbox-plaque">
+          <div class="plaque-divider"></div>
+          <div class="plaque-word" id="lb-word"></div>
+          <div class="plaque-meta" id="lb-meta"></div>
+          <div class="plaque-date" id="lb-date"></div>
+        </div>
+      </div>
     </div>
-    <div id="empty-state" class="status-message hidden">
-      <p>The gallery awaits its first masterwork.</p>
-      <a href="/" class="play-link">Play a game to fill it →</a>
-    </div>
-    <div id="paintings-grid" class="paintings-grid"></div>
-    <div id="load-more-row" class="load-more-row hidden">
-      <button id="btn-load-more" class="btn-load-more">Load more masterworks</button>
-    </div>
-  </main>
 
-  <!-- Drop a baroque MP3 at public/sounds/baroque.mp3 to enable music.
+    <!-- Drop a baroque MP3 at public/sounds/baroque.mp3 to enable music.
        Free public-domain baroque recordings are available at musopen.org -->
-  <audio id="bg-music" loop autoplay>
-    <source src="/sounds/baroque.mp3" type="audio/mpeg" />
-  </audio>
+    <audio id="bg-music" loop autoplay>
+      <source src="/sounds/baroque.mp3" type="audio/mpeg" />
+    </audio>
 
-  <script>
-    const musicBtn  = document.getElementById('music-btn');
-    const bgMusic   = document.getElementById('bg-music');
-    const grid      = document.getElementById('paintings-grid');
-    const loadingEl = document.getElementById('loading-state');
-    const emptyEl   = document.getElementById('empty-state');
-    const loadMoreRow = document.getElementById('load-more-row');
-    const btnLoadMore = document.getElementById('btn-load-more');
+    <script>
+      const musicBtn = document.getElementById("music-btn");
+      const bgMusic = document.getElementById("bg-music");
+      const grid = document.getElementById("paintings-grid");
+      const loadingEl = document.getElementById("loading-state");
+      const emptyEl = document.getElementById("empty-state");
+      const loadMoreRow = document.getElementById("load-more-row");
+      const btnLoadMore = document.getElementById("btn-load-more");
 
-    let musicPlaying = false;
-    let offset = 0;
-    const LIMIT = 48;
-    let totalItems = 0;
+      let musicPlaying = false;
+      let offset = 0;
+      const LIMIT = 48;
+      let totalItems = 0;
 
-    // ── Music toggle ──────────────────────────────────────────────────────────
-    musicBtn.addEventListener('click', () => {
-      if (musicPlaying) {
-        bgMusic.pause();
-        musicBtn.textContent = '🎵';
-        musicBtn.classList.remove('playing');
-      } else {
-        bgMusic.play().catch(() => {});
-        musicBtn.textContent = '⏸';
-        musicBtn.classList.add('playing');
-      }
-      musicPlaying = !musicPlaying;
-    });
+      // ── Music toggle ──────────────────────────────────────────────────────────
+      musicBtn.addEventListener("click", () => {
+        if (musicPlaying) {
+          bgMusic.pause();
+          musicBtn.textContent = "🎵";
+          musicBtn.classList.remove("playing");
+        } else {
+          bgMusic.play().catch(() => {});
+          musicBtn.textContent = "⏸";
+          musicBtn.classList.add("playing");
+        }
+        musicPlaying = !musicPlaying;
+      });
 
-    // Attempt immediate autoplay (may be blocked by browser policy)
-    bgMusic.play().then(() => {
-      musicPlaying = true;
-      musicBtn.textContent = '⏸';
-      musicBtn.classList.add('playing');
-    }).catch(() => {});
-
-    // Fallback: autoplay on first user interaction anywhere on the page
-    document.addEventListener('click', () => {
-      if (!musicPlaying && bgMusic.src && !bgMusic.error) {
-        bgMusic.play().then(() => {
+      // Attempt immediate autoplay (may be blocked by browser policy)
+      bgMusic
+        .play()
+        .then(() => {
           musicPlaying = true;
-          musicBtn.textContent = '⏸';
-          musicBtn.classList.add('playing');
-        }).catch(() => {});
+          musicBtn.textContent = "⏸";
+          musicBtn.classList.add("playing");
+        })
+        .catch(() => {});
+
+      // Fallback: autoplay on first user interaction anywhere on the page
+      document.addEventListener(
+        "click",
+        () => {
+          if (!musicPlaying && bgMusic.src && !bgMusic.error) {
+            bgMusic
+              .play()
+              .then(() => {
+                musicPlaying = true;
+                musicBtn.textContent = "⏸";
+                musicBtn.classList.add("playing");
+              })
+              .catch(() => {});
+          }
+        },
+        { once: true },
+      );
+
+      // ── Lightbox ──────────────────────────────────────────────────────────────
+      const lightbox   = document.getElementById("lightbox");
+      const lbArt      = lightbox.querySelector(".lightbox-art");
+      const lbWord     = document.getElementById("lb-word");
+      const lbMeta     = document.getElementById("lb-meta");
+      const lbDate     = document.getElementById("lb-date");
+      const lbClose    = lightbox.querySelector(".lightbox-close");
+      const lbBackdrop = lightbox.querySelector(".lightbox-backdrop");
+
+      function openLightbox(item) {
+        lbArt.src = `/api/gallery/${item.id}/image`;
+        lbArt.alt = item.word;
+        lbWord.textContent = item.word;
+        lbMeta.innerHTML = `by <em>${escHtml(item.drawer)}</em> · Round ${item.round}`;
+        lbDate.textContent = formatDate(item.played_at);
+        lightbox.classList.remove("hidden");
+        document.body.style.overflow = "hidden";
+        lbClose.focus();
       }
-    }, { once: true });
 
-    // ── Painting card builder ─────────────────────────────────────────────────
-    function escHtml(str) {
-      return String(str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
+      function closeLightbox() {
+        lightbox.classList.add("hidden");
+        document.body.style.overflow = "";
+      }
 
-    function formatDate(str) {
-      const d = new Date(str + 'Z');
-      return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-    }
+      lbClose.addEventListener("click", closeLightbox);
+      lbBackdrop.addEventListener("click", closeLightbox);
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && !lightbox.classList.contains("hidden")) {
+          closeLightbox();
+        }
+      });
 
-    function createPainting(item) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'painting-wrapper';
+      // ── Painting card builder ─────────────────────────────────────────────────
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
 
-      wrapper.innerHTML = `
-        <div class="frame-corner tl">⚜</div>
-        <div class="frame-corner tr">⚜</div>
-        <div class="frame-corner bl">⚜</div>
-        <div class="frame-corner br">⚜</div>
+      function formatDate(str) {
+        const d = new Date(str + "Z");
+        return d.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function createPainting(item) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "painting-wrapper";
+
+        wrapper.innerHTML = `
+        <div>
         <div class="frame-inner">
           <div class="painting-canvas">
             <img
               src="/api/gallery/${item.id}/image"
               alt="${escHtml(item.word)}"
               loading="lazy"
+              class="art-img"
             />
+            <img class="frame-overlay" src="/frame.png" alt="" aria-hidden="true">
           </div>
-          <div class="painting-plaque">
+        </div>
+        <div class="painting-plaque">
             <div class="plaque-divider"></div>
             <div class="plaque-word">${escHtml(item.word)}</div>
             <div class="plaque-meta">by <em>${escHtml(item.drawer)}</em> · Round ${item.round}</div>
@@ -124,48 +195,51 @@
           </div>
         </div>
       `;
-      return wrapper;
-    }
 
-    // ── Fetch & render ────────────────────────────────────────────────────────
-    async function loadItems() {
-      try {
-        const res  = await fetch(`/api/gallery?limit=${LIMIT}&offset=${offset}`);
-        const data = await res.json();
-        totalItems = data.total;
-
-        loadingEl.classList.add('hidden');
-
-        if (data.total === 0) {
-          emptyEl.classList.remove('hidden');
-          return;
-        }
-
-        const frag = document.createDocumentFragment();
-        data.items.forEach(item => frag.appendChild(createPainting(item)));
-        grid.appendChild(frag);
-
-        offset += data.items.length;
-        if (offset < totalItems) {
-          loadMoreRow.classList.remove('hidden');
-        } else {
-          loadMoreRow.classList.add('hidden');
-        }
-      } catch (err) {
-        loadingEl.textContent = 'Could not load the gallery.';
+        wrapper.addEventListener("click", () => openLightbox(item));
+        return wrapper;
       }
-    }
 
-    btnLoadMore.addEventListener('click', async () => {
-      btnLoadMore.disabled = true;
-      btnLoadMore.textContent = 'Loading…';
-      await loadItems();
-      btnLoadMore.disabled = false;
-      btnLoadMore.textContent = 'Load more masterworks';
-    });
+      // ── Fetch & render ────────────────────────────────────────────────────────
+      async function loadItems() {
+        try {
+          const res = await fetch(
+            `/api/gallery?limit=${LIMIT}&offset=${offset}`,
+          );
+          const data = await res.json();
+          totalItems = data.total;
 
-    loadItems();
-  </script>
+          loadingEl.classList.add("hidden");
 
-</body>
+          if (data.total === 0) {
+            emptyEl.classList.remove("hidden");
+            return;
+          }
+
+          const frag = document.createDocumentFragment();
+          data.items.forEach((item) => frag.appendChild(createPainting(item)));
+          grid.appendChild(frag);
+
+          offset += data.items.length;
+          if (offset < totalItems) {
+            loadMoreRow.classList.remove("hidden");
+          } else {
+            loadMoreRow.classList.add("hidden");
+          }
+        } catch (err) {
+          loadingEl.textContent = "Could not load the gallery.";
+        }
+      }
+
+      btnLoadMore.addEventListener("click", async () => {
+        btnLoadMore.disabled = true;
+        btnLoadMore.textContent = "Loading…";
+        await loadItems();
+        btnLoadMore.disabled = false;
+        btnLoadMore.textContent = "Load more masterworks";
+      });
+
+      loadItems();
+    </script>
+  </body>
 </html>

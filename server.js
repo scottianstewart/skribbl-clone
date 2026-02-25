@@ -117,6 +117,7 @@ function getPlayersArray(room) {
     name: p.name,
     score: p.score,
     hasGuessed: p.hasGuessed,
+    avatarIndex: p.avatarIndex,
   }));
 }
 
@@ -146,6 +147,7 @@ function createRoom(hostSocket, username) {
     turnStartTime: 0,
     guessedCount: 0,
     screenshotReceived: false,
+    avatarCounter: 0,
   };
 
   addPlayerToRoom(room, hostSocket, username);
@@ -160,6 +162,7 @@ function addPlayerToRoom(room, socket, username) {
     score: 0,
     hasGuessed: false,
     connected: true,
+    avatarIndex: room.avatarCounter++,
   });
   socket.join(room.code);
   socketRoom.set(socket.id, room.code);
@@ -563,8 +566,9 @@ io.on('connection', (socket) => {
     });
 
     // Notify others
+    const newPlayer = room.players.get(socket.id);
     socket.to(room.code).emit('player-joined', {
-      player: { id: socket.id, name, score: 0, hasGuessed: false },
+      player: { id: socket.id, name, score: 0, hasGuessed: false, avatarIndex: newPlayer.avatarIndex },
     });
 
     // System message
