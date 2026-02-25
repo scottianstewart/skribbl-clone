@@ -4,6 +4,32 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const path = require('path');
+const Database = require('better-sqlite3');
+
+// ─── Database ─────────────────────────────────────────────────────────────────
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'gallery.db');
+const db = new Database(dbPath);
+db.exec(`
+  CREATE TABLE IF NOT EXISTS gallery_items (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    word       TEXT    NOT NULL,
+    drawer     TEXT    NOT NULL,
+    room_code  TEXT    NOT NULL,
+    round      INTEGER NOT NULL,
+    played_at  TEXT    DEFAULT (datetime('now')),
+    image_data TEXT    NOT NULL
+  )
+`);
+const insertItem = db.prepare(
+  'INSERT INTO gallery_items (word, drawer, room_code, round, image_data) VALUES (?, ?, ?, ?, ?)'
+);
+const selectItems = db.prepare(
+  'SELECT id, word, drawer, room_code, round, played_at FROM gallery_items ORDER BY id DESC LIMIT ? OFFSET ?'
+);
+const countItems = db.prepare('SELECT COUNT(*) as total FROM gallery_items');
+const selectItemById = db.prepare(
+  'SELECT id, word, drawer, room_code, round, played_at, image_data FROM gallery_items WHERE id = ?'
+);
 
 const app = express();
 const server = http.createServer(app);
@@ -421,6 +447,13 @@ function endGame(room) {
 
   const finalScores = getPlayersArray(room).sort((a, b) => b.score - a.score);
 
+  // Persist drawings to gallery DB
+  for (const s of room.screenshots) {
+    if (s.imageData) {
+      insertItem.run(s.word, s.drawer, room.code, s.round, s.imageData);
+    }
+  }
+
   io.to(room.code).emit('game-end', {
     finalScores,
     screenshots: room.screenshots,
@@ -755,6 +788,30 @@ function levenshtein(a, b) {
   }
   return dp[m][n];
 }
+
+// ─── Gallery Routes ───────────────────────────────────────────────────────────
+app.get('/gallery', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'gallery.html'));
+});
+
+app.get('/api/gallery', (req, res) => {
+  const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit)  || 48));
+  const offset = Math.max(0, parseInt(req.query.offset) || 0);
+  const items  = selectItems.all(limit, offset);
+  const { total } = countItems.get();
+  res.json({ items, total, limit, offset });
+});
+
+app.get('/api/gallery/:id/image', (req, res) => {
+  const row = selectItemById.get(parseInt(req.params.id));
+  if (!row) return res.status(404).end();
+  // image_data is "data:image/png;base64,..."
+  const base64 = row.image_data.replace(/^data:image\/png;base64,/, '');
+  const buf = Buffer.from(base64, 'base64');
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  res.end(buf);
+});
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
