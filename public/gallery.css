@@ -163,6 +163,12 @@ body {
   line-height: 1.1;
 }
 
+.small {
+  font-size: clamp(18px, 3vw, 24px);
+  position: relative;
+  bottom: clamp(4px, 1vw, 12px);
+}
+
 .gallery-subtitle {
   font-family: var(--font-serif);
   font-style: italic;
