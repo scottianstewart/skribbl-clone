@@ -198,6 +198,21 @@ input[type="range"] {
   font-style: italic;
 }
 
+.ampersand-animation {
+  display: inline-block;
+  animation: ampersand-bounce 1.5s ease-in-out infinite;
+}
+
+@keyframes ampersand-bounce {
+  0%,
+  100% {
+    transform: rotate(15deg);
+  }
+  50% {
+    transform: rotate(-15deg);
+  }
+}
+
 .gallery-link {
   display: inline-block;
   font-size: 15px;
