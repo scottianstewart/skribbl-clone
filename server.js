@@ -26,7 +26,12 @@ const insertItem = db.prepare(
 const selectItems = db.prepare(
   'SELECT id, word, drawer, room_code, round, played_at FROM gallery_items ORDER BY id DESC LIMIT ? OFFSET ?'
 );
+const selectItemsByDrawer = db.prepare(
+  'SELECT id, word, drawer, room_code, round, played_at FROM gallery_items WHERE drawer = ? ORDER BY id DESC LIMIT ? OFFSET ?'
+);
 const countItems = db.prepare('SELECT COUNT(*) as total FROM gallery_items');
+const countItemsByDrawer = db.prepare('SELECT COUNT(*) as total FROM gallery_items WHERE drawer = ?');
+const selectDrawers = db.prepare('SELECT DISTINCT drawer FROM gallery_items ORDER BY drawer COLLATE NOCASE ASC');
 const selectItemById = db.prepare(
   'SELECT id, word, drawer, room_code, round, played_at, image_data FROM gallery_items WHERE id = ?'
 );
@@ -119,6 +124,27 @@ function getPlayersArray(room) {
     hasGuessed: p.hasGuessed,
     avatarIndex: p.avatarIndex,
   }));
+}
+
+function getOpenRooms() {
+  const result = [];
+  for (const room of rooms.values()) {
+    if (room.phase !== 'waiting') continue;
+    const connected = getConnectedPlayers(room);
+    if (connected.length === 0) continue;
+    const host = room.players.get(room.hostId);
+    result.push({
+      code: room.code,
+      hostName: host ? host.name : '?',
+      playerCount: connected.length,
+      config: room.config,
+    });
+  }
+  return result;
+}
+
+function broadcastOpenRooms() {
+  io.emit('open-rooms', getOpenRooms());
 }
 
 // ─── Room State ───────────────────────────────────────────────────────────────
@@ -216,8 +242,8 @@ function startTurn(room) {
   if (room.drawerIndex >= room.drawerOrder.length) {
     // All drawers in this round done
     if (room.currentRound < room.config.rounds) {
-      // Rebuild drawerOrder for next round with currently connected players
-      room.drawerOrder = shuffle([...room.players.keys()].filter(id => room.players.get(id).connected));
+      // Keep same drawer order each round; filter out anyone who disconnected
+      room.drawerOrder = room.drawerOrder.filter(id => room.players.get(id)?.connected);
       room.drawerIndex = 0;
       startRound(room, room.currentRound + 1);
     } else {
@@ -483,6 +509,7 @@ function handleDisconnect(socket) {
     if (room.timer) clearInterval(room.timer);
     if (room.choiceTimer) clearTimeout(room.choiceTimer);
     rooms.delete(code);
+    broadcastOpenRooms();
     return;
   }
 
@@ -499,6 +526,8 @@ function handleDisconnect(socket) {
     players: getPlayersArray(room),
     newHostId,
   });
+
+  if (room.phase === 'waiting') broadcastOpenRooms();
 
   // Handle mid-game disconnects
   if (room.phase === 'drawing' || room.phase === 'choosing') {
@@ -578,6 +607,8 @@ io.on('connection', (socket) => {
       message: `${name} joined the room.`,
       type: 'system',
     });
+
+    broadcastOpenRooms();
   });
 
   socket.on('update-config', ({ rounds, timeLimit }) => {
@@ -600,6 +631,7 @@ io.on('connection', (socket) => {
     if (connected.length < 2) return;
 
     startGame(room);
+    broadcastOpenRooms();
   });
 
   socket.on('choose-word', ({ word }) => {
@@ -763,6 +795,12 @@ io.on('connection', (socket) => {
       players: getPlayersArray(room),
       config: room.config,
     });
+
+    broadcastOpenRooms();
+  });
+
+  socket.on('get-open-rooms', () => {
+    socket.emit('open-rooms', getOpenRooms());
   });
 
   socket.on('disconnect', () => {
@@ -798,11 +836,17 @@ app.get('/gallery', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'gallery.html'));
 });
 
+app.get('/api/gallery/drawers', (_req, res) => {
+  const drawers = selectDrawers.all().map(r => r.drawer);
+  res.json({ drawers });
+});
+
 app.get('/api/gallery', (req, res) => {
   const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit)  || 48));
   const offset = Math.max(0, parseInt(req.query.offset) || 0);
-  const items  = selectItems.all(limit, offset);
-  const { total } = countItems.get();
+  const drawer = req.query.drawer ? String(req.query.drawer) : null;
+  const items  = drawer ? selectItemsByDrawer.all(drawer, limit, offset) : selectItems.all(limit, offset);
+  const { total } = drawer ? countItemsByDrawer.get(drawer) : countItems.get();
   res.json({ items, total, limit, offset });
 });
 

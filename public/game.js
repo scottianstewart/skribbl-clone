@@ -54,6 +54,12 @@ const roomCodeInput = document.getElementById("room-code-input");
 const btnCreate = document.getElementById("btn-create");
 const btnJoin = document.getElementById("btn-join");
 const lobbyError = document.getElementById("lobby-error");
+const openRoomsSection = document.getElementById("open-rooms-section");
+const openRoomsList = document.getElementById("open-rooms-list");
+
+// ─── Persisted Name ───────────────────────────────────────────────────────────
+const savedName = localStorage.getItem("playerName");
+if (savedName) usernameInput.value = savedName;
 
 const displayRoomCode = document.getElementById("display-room-code");
 const btnCopyCode = document.getElementById("btn-copy-code");
@@ -325,10 +331,8 @@ function updateScoreboard(players, drawerId) {
     if (p.id === drawerId) li.classList.add("is-drawer");
     if (p.hasGuessed && p.id !== drawerId) li.classList.add("guessed");
 
-    const icon = p.id === drawerId ? "✏️" : p.hasGuessed ? "✅" : "";
     li.innerHTML = `
       ${avatarHtml(p.avatarIndex)}
-      <span class="score-icon">${icon}</span>
       <span class="score-name">${escHtml(p.name)}</span>
       <span class="score-pts">${p.score}</span>
     `;
@@ -414,6 +418,7 @@ btnCreate.addEventListener("click", () => {
     showLobbyError("Please enter a name.");
     return;
   }
+  localStorage.setItem("playerName", name);
   socket.emit("join-room", { username: name });
 });
 
@@ -428,6 +433,7 @@ btnJoin.addEventListener("click", () => {
     showLobbyError("Enter a valid 4-letter room code.");
     return;
   }
+  localStorage.setItem("playerName", name);
   socket.emit("join-room", { username: name, roomCode: code });
 });
 
@@ -443,6 +449,37 @@ roomCodeInput.addEventListener("keydown", (e) => {
 roomCodeInput.addEventListener("input", (e) => {
   e.target.value = e.target.value.toUpperCase();
 });
+
+function renderOpenRooms(rooms) {
+  if (rooms.length === 0) {
+    openRoomsSection.classList.add("hidden");
+    return;
+  }
+  openRoomsSection.classList.remove("hidden");
+  openRoomsList.innerHTML = "";
+  rooms.forEach((r) => {
+    const li = document.createElement("li");
+    li.className = "open-room-row";
+    li.innerHTML = `
+      <div class="open-room-info">
+        <span class="open-room-host">${escHtml(r.hostName)}'s room</span>
+        <span class="open-room-meta">${r.playerCount} player${r.playerCount !== 1 ? "s" : ""} · ${r.config.rounds} rounds · ${r.config.timeLimit}s</span>
+      </div>
+      <button class="btn btn-secondary open-room-join">Join</button>
+    `;
+    li.addEventListener("click", () => {
+      const name = usernameInput.value.trim();
+      if (!name) {
+        showLobbyError("Please enter a name first.");
+        usernameInput.focus();
+        return;
+      }
+      localStorage.setItem("playerName", name);
+      socket.emit("join-room", { username: name, roomCode: r.code });
+    });
+    openRoomsList.appendChild(li);
+  });
+}
 
 function showLobbyError(msg) {
   lobbyError.textContent = msg;
@@ -512,6 +549,14 @@ function showScoreOverlay(scores) {
 }
 
 // ─── Socket Events ────────────────────────────────────────────────────────────
+socket.on("connect", () => {
+  socket.emit("get-open-rooms");
+});
+
+socket.on("open-rooms", (rooms) => {
+  renderOpenRooms(rooms);
+});
+
 socket.on(
   "room-joined",
   ({ roomCode: code, players, isHost: host, config }) => {
@@ -772,12 +817,12 @@ socket.on("chat-message", ({ id, name, message, type }) => {
 });
 
 socket.on("player-guessed", ({ playerId, playerName, points, scores }) => {
+  playSound("correctGuess");
   updateScoreboard(scores, currentDrawerId);
 });
 
 socket.on("guess-result", ({ correct, points }) => {
   if (correct) {
-    playSound("correctGuess");
     chatInput.disabled = true;
     chatInput.placeholder = `Correct! +${points} pts`;
   }

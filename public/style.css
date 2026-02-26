@@ -267,6 +267,57 @@ input[type="range"] {
   text-align: center;
 }
 
+/* ─── Open Rooms ──────────────────────────────────────────────────────────── */
+.open-rooms-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.open-rooms-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.open-room-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--paper-2);
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.open-room-row:hover {
+  background: var(--accent-light);
+}
+.open-room-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.open-room-host {
+  font-size: 18px;
+  font-weight: 700;
+}
+.open-room-meta {
+  font-size: 15px;
+  color: var(--ink-muted);
+}
+.open-room-join {
+  font-size: 16px;
+  font-weight: 700;
+  padding: 5px 14px;
+  flex-shrink: 0;
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    WAITING ROOM
 ════════════════════════════════════════════════════════════════════════════ */
