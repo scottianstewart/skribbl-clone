@@ -12,3 +12,4 @@ coverage/
 *.njsproj
 *.sln
 *.sw? 
+gallery.db
