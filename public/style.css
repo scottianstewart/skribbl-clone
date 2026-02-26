@@ -63,7 +63,6 @@ body {
 .screen.active {
   display: flex;
   flex-direction: column;
-  gap: 24px;
 }
 
 /* ─── Buttons ────────────────────────────────────────────────────────────── */
@@ -210,6 +209,8 @@ input[type="range"] {
   border: 2px dashed var(--ink-light);
   border-radius: var(--radius-sm);
   transition: all 0.15s;
+  position: relative;
+  top: 20px;
 }
 .gallery-link:hover {
   background: var(--paper-2);
@@ -696,6 +697,98 @@ input[type="range"] {
     transform: scale(0.8);
     opacity: 0;
   }
+}
+
+/* Word Choosing Overlay */
+#choosing-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 16, 9, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+#choosing-overlay-card {
+  background: var(--surface);
+  border: 2.5px solid var(--ink);
+  box-shadow: var(--shadow-ink-lg);
+  border-radius: var(--radius);
+  padding: 24px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+#choosing-overlay-name {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.choosing-overlay-sub {
+  font-size: 22px;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+/* Turn Score Overlay */
+#score-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 16, 9, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+#score-overlay-card {
+  background: var(--surface);
+  border: 2.5px solid var(--ink);
+  box-shadow: var(--shadow-ink-lg);
+  border-radius: var(--radius);
+  padding: 20px 28px;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.score-overlay-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.score-delta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 19px;
+  font-weight: 700;
+}
+.score-delta-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.score-delta-pts {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--success);
+  min-width: 52px;
+  text-align: right;
+}
+.score-delta-pts.zero {
+  color: var(--ink-muted);
 }
 
 /* Chat Panel */

@@ -1,5 +1,25 @@
 "use strict";
 
+// ─── Sounds ───────────────────────────────────────────────────────────────────
+const SOUNDS = {
+  roundStart: new Audio("/sounds/round-start.mp3"),
+  fiveSeconds: new Audio("/sounds/five-seconds.mp3"),
+  roundEnd: new Audio("/sounds/round-end.mp3"),
+  correctGuess: new Audio("/sounds/correct-guess.mp3"),
+  gameEnd: new Audio("/sounds/game-end.mp3"),
+};
+
+function playSound(name) {
+  const snd = SOUNDS[name];
+  if (!snd) return;
+  snd.currentTime = 0;
+  snd.play().catch(() => {}); // ignore autoplay policy errors
+}
+
+let fiveSecondPlayed = false;
+let prevScores = {}; // score snapshot at turn start for delta calculation
+let scoreOverlayTimeout = null;
+
 // ─── Socket & State ───────────────────────────────────────────────────────────
 const socket = io();
 
@@ -70,6 +90,12 @@ const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
 const countdownOverlay = document.getElementById("countdown-overlay");
 const countdownNumber = document.getElementById("countdown-number");
+
+const choosingOverlay = document.getElementById("choosing-overlay");
+const choosingOverlayName = document.getElementById("choosing-overlay-name");
+
+const scoreOverlay = document.getElementById("score-overlay");
+const scoreOverlayRows = document.getElementById("score-overlay-rows");
 
 const finalScoreList = document.getElementById("final-score-list");
 const galleryGrid = document.getElementById("gallery-grid");
@@ -456,6 +482,35 @@ btnPlayAgain.addEventListener("click", () => {
   socket.emit("play-again");
 });
 
+// ─── Turn Score Overlay ───────────────────────────────────────────────────────
+function hideScoreOverlay() {
+  clearTimeout(scoreOverlayTimeout);
+  scoreOverlay.style.opacity = "0";
+}
+
+function showScoreOverlay(scores) {
+  const rows = scores
+    .map((p) => ({ ...p, delta: p.score - (prevScores[p.id] ?? p.score) }))
+    .sort((a, b) => b.delta - a.delta);
+
+  scoreOverlayRows.innerHTML = rows
+    .map(
+      (p) => `
+    <div class="score-delta-row">
+      ${avatarHtml(p.avatarIndex)}
+      <span class="score-delta-name">${escHtml(p.name)}</span>
+      <span class="score-delta-pts${p.delta === 0 ? " zero" : ""}">${p.delta > 0 ? "+" : ""}${p.delta}</span>
+    </div>`,
+    )
+    .join("");
+
+  clearTimeout(scoreOverlayTimeout);
+  scoreOverlay.style.opacity = "1";
+  scoreOverlayTimeout = setTimeout(() => {
+    scoreOverlay.style.opacity = "0";
+  }, 4000);
+}
+
 // ─── Socket Events ────────────────────────────────────────────────────────────
 socket.on(
   "room-joined",
@@ -576,6 +631,8 @@ socket.on("drawer-choosing", ({ drawerId, drawerName, round, totalRounds }) => {
     wordChoicesEl.classList.add("hidden");
     drawerChoosingMsg.classList.remove("hidden");
     choosingName.textContent = drawerName;
+    choosingOverlayName.textContent = drawerName;
+    choosingOverlay.style.opacity = "1";
   }
 });
 
@@ -628,6 +685,7 @@ socket.on(
     wordChoicesEl.classList.add("hidden");
     drawerChoosingMsg.classList.add("hidden");
     countdownOverlay.classList.add("hidden");
+    choosingOverlay.style.opacity = "0";
 
     currentRoundEl.textContent = round;
     totalRoundsEl.textContent = totalRounds;
@@ -668,11 +726,21 @@ socket.on(
     timerBar.className = "";
     timerNumber.className = "";
     timerNumber.textContent = timeLimit;
+
+    // Snapshot scores for turn-end delta display
+    prevScores = {};
+    (scores || []).forEach((p) => {
+      prevScores[p.id] = p.score;
+    });
+
+    hideScoreOverlay();
+    fiveSecondPlayed = false;
   },
 );
 
 socket.on("countdown", ({ count }) => {
   showCountdown(count === 0 ? "Draw!" : count);
+  if (count === 0) playSound("roundStart");
 });
 
 socket.on("stroke", (stroke) => {
@@ -693,6 +761,10 @@ socket.on("clear-canvas", () => {
 
 socket.on("timer-update", ({ timeLeft }) => {
   updateTimer(timeLeft);
+  if (timeLeft === 5 && !fiveSecondPlayed) {
+    fiveSecondPlayed = true;
+    playSound("fiveSeconds");
+  }
 });
 
 socket.on("chat-message", ({ id, name, message, type }) => {
@@ -705,12 +777,15 @@ socket.on("player-guessed", ({ playerId, playerName, points, scores }) => {
 
 socket.on("guess-result", ({ correct, points }) => {
   if (correct) {
+    playSound("correctGuess");
     chatInput.disabled = true;
     chatInput.placeholder = `Correct! +${points} pts`;
   }
 });
 
 socket.on("turn-end", ({ word, scores, drawerId }) => {
+  playSound("roundEnd");
+  showScoreOverlay(scores);
   // Reveal word to everyone
   wordHint.textContent = word;
   wordHint.classList.remove("hidden");
@@ -745,7 +820,12 @@ socket.on("turn-end", ({ word, scores, drawerId }) => {
 });
 
 socket.on("game-end", ({ finalScores, screenshots }) => {
+  Object.values(SOUNDS).forEach((snd) => {
+    snd.pause();
+    snd.currentTime = 0;
+  });
   showScreen("screen-end");
+  playSound("gameEnd");
   renderLeaderboard(finalScores);
   renderGallery(screenshots);
   if (isHost) {
