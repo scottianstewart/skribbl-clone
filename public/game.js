@@ -3,15 +3,19 @@
 // ─── Sounds ───────────────────────────────────────────────────────────────────
 const SOUNDS = {
   roundStart: new Audio("/sounds/round-start.mp3"),
-  fiveSeconds: new Audio("/sounds/five-seconds.mp3"),
+  fiveSeconds: new Audio("/sounds/countdown-tick.mp3"),
   roundEnd: new Audio("/sounds/round-end.mp3"),
   correctGuess: new Audio("/sounds/correct-guess.mp3"),
   gameEnd: new Audio("/sounds/game-end.mp3"),
+  countdownTick: new Audio("/sounds/countdown-tick.mp3"),
 };
+
+let masterVolume = parseFloat(localStorage.getItem("masterVolume") ?? "0.2");
 
 function playSound(name) {
   const snd = SOUNDS[name];
   if (!snd) return;
+  snd.volume = masterVolume;
   snd.currentTime = 0;
   snd.play().catch(() => {}); // ignore autoplay policy errors
 }
@@ -99,9 +103,38 @@ const countdownNumber = document.getElementById("countdown-number");
 
 const choosingOverlay = document.getElementById("choosing-overlay");
 const choosingOverlayName = document.getElementById("choosing-overlay-name");
+const wordChoiceOverlay = document.getElementById("word-choice-overlay");
+const wordChoiceBtns = document.getElementById("word-choice-btns");
 
 const scoreOverlay = document.getElementById("score-overlay");
 const scoreOverlayRows = document.getElementById("score-overlay-rows");
+const volumeSlider = document.getElementById("volume-slider");
+const volumeIcon = document.getElementById("volume-icon");
+
+// ─── Volume Control ───────────────────────────────────────────────────────────
+volumeSlider.value = masterVolume;
+updateVolumeIcon(masterVolume);
+
+volumeSlider.addEventListener("input", () => {
+  masterVolume = parseFloat(volumeSlider.value);
+  localStorage.setItem("masterVolume", masterVolume);
+  updateVolumeIcon(masterVolume);
+});
+
+volumeIcon.addEventListener("click", () => {
+  masterVolume =
+    masterVolume > 0
+      ? 0
+      : parseFloat(localStorage.getItem("masterVolume") || "0.7");
+  volumeSlider.value = masterVolume;
+  updateVolumeIcon(masterVolume);
+});
+
+function updateVolumeIcon(vol) {
+  if (vol === 0) volumeIcon.textContent = "🔇";
+  else if (vol < 0.4) volumeIcon.textContent = "🔉";
+  else volumeIcon.textContent = "🔊";
+}
 
 const finalScoreList = document.getElementById("final-score-list");
 const galleryGrid = document.getElementById("gallery-grid");
@@ -688,19 +721,21 @@ socket.on("word-choices", ({ words, drawerId, drawerName }) => {
 
   drawerChoosingMsg.classList.add("hidden");
   wordHint.classList.add("hidden");
-  wordChoicesEl.classList.remove("hidden");
-  wordChoicesEl.innerHTML = "";
+  wordChoicesEl.classList.add("hidden");
 
+  // Show word choices as an overlay on the canvas
+  wordChoiceBtns.innerHTML = "";
   words.forEach((word) => {
     const btn = document.createElement("button");
     btn.className = "word-choice-btn";
     btn.textContent = word;
     btn.addEventListener("click", () => {
       socket.emit("choose-word", { word });
-      wordChoicesEl.classList.add("hidden");
+      wordChoiceOverlay.classList.add("hidden");
     });
-    wordChoicesEl.appendChild(btn);
+    wordChoiceBtns.appendChild(btn);
   });
+  wordChoiceOverlay.classList.remove("hidden");
 
   addChatMessage({
     name: "Game",
@@ -728,6 +763,7 @@ socket.on(
     totalTimeLimit = timeLimit;
 
     wordChoicesEl.classList.add("hidden");
+    wordChoiceOverlay.classList.add("hidden");
     drawerChoosingMsg.classList.add("hidden");
     countdownOverlay.classList.add("hidden");
     choosingOverlay.style.opacity = "0";
@@ -786,6 +822,7 @@ socket.on(
 socket.on("countdown", ({ count }) => {
   showCountdown(count === 0 ? "Draw!" : count);
   if (count === 0) playSound("roundStart");
+  else playSound("countdownTick");
 });
 
 socket.on("stroke", (stroke) => {

@@ -24,6 +24,7 @@
   ══════════════════════════════════════════════════════════════════ -->
     <div id="screen-lobby" class="screen active">
       <div class="lobby-card">
+        <a href="/gallery" class="gallery-link">🚪 View Gallery</a>
         <h1 class="logo">
           Lunch <span class="ampersand-animation">&</span> Draw
         </h1>
@@ -64,7 +65,6 @@
 
         <p id="lobby-error" class="error-msg hidden"></p>
       </div>
-      <a href="/gallery" class="gallery-link">View Gallery</a>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════
@@ -156,6 +156,17 @@
         <div id="sidebar">
           <h3>Players</h3>
           <ul id="score-list"></ul>
+          <div id="volume-control">
+            <span id="volume-icon">🔊</span>
+            <input
+              type="range"
+              id="volume-slider"
+              min="0"
+              max="1"
+              step="0.05"
+              value="0.7"
+            />
+          </div>
         </div>
 
         <!-- Canvas Column: canvas + tool panel stacked -->
@@ -166,6 +177,14 @@
             <!-- Countdown Overlay -->
             <div id="countdown-overlay" class="hidden">
               <div id="countdown-number"></div>
+            </div>
+
+            <!-- Word Choice Overlay (drawer picking a word) -->
+            <div id="word-choice-overlay" class="hidden">
+              <div id="word-choice-card">
+                <div class="word-choice-title">Choose a word to draw!</div>
+                <div id="word-choice-btns"></div>
+              </div>
             </div>
 
             <!-- Word Choosing Overlay -->
