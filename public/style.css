@@ -326,6 +326,7 @@ input[type="range"] {
 .open-room-host {
   font-size: 18px;
   font-weight: 700;
+  text-align: left;
 }
 .open-room-meta {
   font-size: 15px;
