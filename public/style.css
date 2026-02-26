@@ -384,6 +384,7 @@ input[type="range"] {
 }
 .player-list-section {
   flex: 1;
+  flex-basis: 33%;
 }
 .player-list-section h3 {
   font-size: 15px;
@@ -624,7 +625,7 @@ input[type="range"] {
 #game-main {
   flex: 1;
   display: grid;
-  grid-template-columns: 160px 1fr 260px;
+  grid-template-columns: 200px 1fr 260px;
   min-height: 0;
   overflow: hidden;
 }
