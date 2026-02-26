@@ -49,39 +49,120 @@ const WORDS = [
   'tiger', 'rabbit', 'frog', 'butterfly', 'whale', 'crocodile', 'giraffe',
   'owl', 'parrot', 'turtle', 'bear', 'fox', 'wolf', 'deer', 'monkey', 'fish',
   'lobster', 'scorpion', 'snail', 'peacock', 'flamingo', 'kangaroo',
+  'lion', 'zebra', 'rhino', 'hippo', 'cheetah', 'gorilla', 'panda', 'koala',
+  'llama', 'alpaca', 'hedgehog', 'beaver', 'otter', 'seal', 'walrus',
+  'pelican', 'toucan', 'chameleon', 'iguana', 'cobra', 'octopus', 'jellyfish',
+  'crab', 'starfish', 'seahorse', 'hamster', 'squirrel', 'chipmunk', 'skunk',
+  'raccoon', 'moose', 'bison', 'camel', 'platypus', 'sloth', 'armadillo',
+  'anteater', 'meerkat', 'lemur', 'orangutan', 'chimpanzee', 'baboon',
+  'swan', 'goose', 'duck', 'rooster', 'chicken', 'turkey', 'pigeon', 'crow',
+  'stork', 'heron', 'woodpecker', 'sparrow', 'hummingbird', 'bat', 'mole',
+  'weasel', 'ferret', 'lynx', 'puma', 'jaguar', 'panther', 'hyena', 'jackal',
+  'manatee', 'narwhal', 'stingray', 'piranha', 'swordfish', 'clownfish',
+  'crayfish', 'shrimp', 'oyster', 'clam', 'mussel', 'snapper', 'caterpillar',
+  'dragonfly', 'grasshopper', 'beetle', 'ladybug', 'firefly', 'mosquito',
+  'spider', 'tarantula', 'centipede', 'worm', 'slug', 'praying mantis',
   // Food
   'pizza', 'apple', 'banana', 'cake', 'hamburger', 'sushi', 'strawberry',
   'watermelon', 'corn', 'carrot', 'mushroom', 'cheese', 'donut', 'taco',
   'sandwich', 'cookie', 'lemon', 'cherry', 'grapes', 'pineapple', 'broccoli',
   'popcorn', 'muffin', 'pretzel', 'noodles', 'toast', 'avocado', 'waffle',
   'hotdog', 'cupcake',
+  'spaghetti', 'lasagna', 'burrito', 'pancake', 'omelette', 'bacon',
+  'steak', 'cheeseburger', 'ramen', 'dumpling', 'spring roll', 'fried rice',
+  'croissant', 'bagel', 'baguette', 'pita', 'focaccia', 'tiramisu',
+  'cheesecake', 'brownie', 'ice cream', 'milkshake', 'smoothie', 'lemonade',
+  'espresso', 'cappuccino', 'hot chocolate', 'orange juice',
+  'mango', 'papaya', 'kiwi', 'coconut', 'fig', 'blueberry', 'raspberry',
+  'peach', 'pear', 'plum', 'apricot', 'melon', 'dragonfruit', 'lychee',
+  'turnip', 'radish', 'beet', 'sweet potato', 'asparagus', 'artichoke',
+  'cauliflower', 'cabbage', 'kale', 'spinach', 'celery', 'cucumber',
+  'zucchini', 'eggplant', 'bell pepper', 'pumpkin', 'garlic', 'onion',
+  'nacho', 'quesadilla', 'guacamole', 'hummus', 'kebab', 'mac and cheese',
+  'grilled cheese', 'French fries', 'onion rings', 'chicken wings',
+  'smore', 'cotton candy', 'candy cane', 'lollipop', 'gummy bear',
+  'fortune cookie', 'rice ball', 'boba tea', 'snow cone', 'churro',
   // Objects
   'chair', 'table', 'lamp', 'telephone', 'umbrella', 'key', 'clock',
   'bicycle', 'anchor', 'camera', 'compass', 'hammer', 'scissors', 'trophy',
   'suitcase', 'guitar', 'crown', 'bell', 'book', 'candle', 'envelope',
   'glasses', 'hat', 'magnet', 'mirror', 'ring', 'rope', 'shield', 'sword',
-  'backpack',
+  'backpack', 'television', 'computer', 'phone', 'speaker', 'headphones',
+  'lantern', 'barrel', 'bucket', 'ladder', 'telescope', 'microscope',
+  'hourglass', 'chess', 'dice', 'kite', 'drum', 'trumpet', 'violin', 'piano',
+  'pencil', 'crayon', 'ruler', 'stapler', 'tape', 'wallet', 'purse',
+  'necklace', 'bracelet', 'watch', 'map', 'globe', 'calculator', 'abacus',
+  'typewriter', 'record player', 'flashlight', 'lighter', 'fire extinguisher',
+  'screwdriver', 'drill', 'axe', 'shovel', 'rake', 'watering can', 'vase',
+  'picture frame', 'mailbox', 'trash can', 'shopping cart', 'gift box',
+  'confetti', 'fireworks', 'pinata', 'party hat', 'medal', 'diploma',
+  'graduation cap', 'stethoscope', 'thermometer', 'bandage', 'crutch',
+  'wheelchair', 'magnifying glass', 'binoculars', 'periscope',
+  'alarm clock', 'lightbulb', 'battery', 'power outlet',
+  'wrench', 'pliers', 'saw', 'pickaxe', 'pitchfork',
+  'safe', 'padlock', 'handcuffs', 'badge', 'megaphone', 'microphone',
+  'accordion', 'harp', 'tuba', 'saxophone', 'flute', 'xylophone', 'banjo',
+  'ukulele', 'cello', 'clarinet', 'harmonica', 'tambourine', 'maracas',
+  'bowling ball', 'baseball bat', 'tennis racket', 'golf club', 'dumbbell',
+  'boxing gloves', 'football', 'basketball', 'soccer ball', 'volleyball',
+  'frisbee', 'dart', 'boomerang', 'slingshot', 'yo-yo', 'spinning top',
+  'puppet', 'teddy bear', 'jack-in-the-box', 'rocking horse', 'dollhouse',
+  'abacus', 'chessboard', 'jigsaw puzzle', 'rubiks cube',
   // Places / Nature
   'mountain', 'island', 'volcano', 'beach', 'forest', 'castle', 'rainbow',
   'river', 'cave', 'desert', 'lighthouse', 'bridge', 'waterfall', 'cloud',
   'moon', 'sun', 'star', 'snowflake', 'tornado', 'tree', 'flower', 'cactus',
   'wave', 'iceberg', 'cliff', 'lake', 'valley', 'canyon', 'glacier', 'pond',
+  'jungle', 'swamp', 'savanna', 'meadow', 'tundra', 'prairie', 'plateau',
+  'delta', 'fjord', 'oasis', 'lagoon', 'bay', 'harbor', 'pier', 'reef',
+  'peninsula', 'atoll', 'dune', 'geyser', 'hot spring', 'mud volcano',
+  'aurora', 'meteor', 'comet', 'solar eclipse', 'lightning', 'thundercloud',
+  'fog', 'hail', 'blizzard', 'sandstorm', 'typhoon', 'hurricane',
+  'palm tree', 'pine tree', 'oak tree', 'bamboo', 'mangrove', 'tumbleweed',
+  'mushroom', 'fern', 'lily pad', 'seaweed', 'coral', 'stalactite',
+  'pyramid', 'sphinx', 'colosseum', 'stonehenge', 'igloo', 'tepee', 'pagoda',
+  'skyscraper', 'windmill', 'dam', 'oil rig', 'power plant', 'factory',
+  'greenhouse', 'barn', 'silo', 'well', 'fountain', 'garden',
   // Transport
   'rocket', 'boat', 'train', 'airplane', 'helicopter', 'submarine', 'balloon',
   'skateboard', 'motorcycle', 'truck', 'canoe', 'spaceship', 'tractor',
   'parachute', 'tank', 'bulldozer', 'sailboat', 'ambulance', 'bus', 'scooter',
+  'jet ski', 'snowmobile', 'golf cart', 'forklift', 'crane', 'dump truck',
+  'cement mixer', 'fire truck', 'police car', 'taxi', 'limousine',
+  'hot air balloon', 'blimp', 'glider', 'hang glider', 'seaplane',
+  'hovercraft', 'ferry', 'cruise ship', 'aircraft carrier', 'tugboat',
+  'barge', 'gondola', 'kayak', 'raft', 'surfboard', 'snowboard',
+  'bobsled', 'dogsled', 'rickshaw', 'carriage', 'chariot',
+  'cable car', 'monorail', 'tram', 'trolley', 'subway', 'unicycle',
   // People / Costumes
   'pirate', 'wizard', 'robot', 'knight', 'astronaut', 'ninja', 'chef',
   'doctor', 'clown', 'superhero', 'cowboy', 'viking', 'mummy', 'ghost',
   'vampire', 'witch', 'ballerina', 'firefighter', 'detective', 'king',
+  'queen', 'princess', 'prince', 'pharaoh', 'samurai', 'gladiator',
+  'archer', 'jester', 'monk', 'priest', 'shaman', 'magician',
+  'acrobat', 'juggler', 'mime', 'conductor', 'singer', 'DJ',
+  'dancer', 'actor', 'journalist', 'scientist', 'professor', 'engineer',
+  'architect', 'lawyer', 'judge', 'police officer', 'paramedic', 'nurse',
+  'surgeon', 'dentist', 'veterinarian', 'farmer', 'fisherman', 'lumberjack',
+  'miner', 'blacksmith', 'carpenter', 'plumber', 'electrician',
+  'sculptor', 'potter', 'weaver', 'tailor', 'baker', 'butcher',
+  'gardener', 'florist', 'barber', 'photographer', 'pilot', 'sailor',
+  'soldier', 'spy', 'alien', 'angel', 'devil', 'skeleton', 'zombie',
+  'werewolf', 'genie', 'fairy', 'elf', 'dwarf', 'troll', 'ogre', 'dragon',
+  'mermaid', 'unicorn', 'phoenix', 'yeti', 'bigfoot',
   // Actions / Misc
   'swimming', 'jumping', 'climbing', 'dancing', 'sleeping', 'cooking',
   'flying', 'running', 'reading', 'painting', 'throwing', 'fishing', 'digging',
   'skating', 'surfing', 'building', 'planting', 'pushing', 'laughing', 'crying',
-  // More objects
-  'television', 'computer', 'phone', 'speaker', 'headphones', 'lantern',
-  'barrel', 'bucket', 'ladder', 'telescope', 'microscope', 'hourglass',
-  'chess', 'dice', 'balloon', 'kite', 'drum', 'trumpet', 'violin', 'piano',
+  'walking', 'hiking', 'jogging', 'crawling', 'crouching', 'waving',
+  'pointing', 'clapping', 'hugging', 'whistling', 'singing', 'shouting',
+  'whispering', 'thinking', 'dreaming', 'yawning', 'sneezing', 'stretching',
+  'weightlifting', 'yoga', 'meditating', 'celebrating', 'cheering', 'rowing',
+  'skiing', 'sledding', 'ice skating', 'cycling', 'horse riding',
+  'rock climbing', 'bungee jumping', 'skydiving', 'scuba diving', 'snorkeling',
+  'archery', 'fencing', 'boxing', 'wrestling', 'bowling', 'golfing',
+  'knitting', 'sewing', 'baking', 'carving', 'welding', 'typing', 'coding',
+  'shopping', 'texting', 'selfie', 'video call', 'opening presents',
 ];
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -98,8 +179,10 @@ function shuffle(arr) {
   return a;
 }
 
-function pickWords(count) {
-  return shuffle(WORDS).slice(0, count);
+function pickWords(count, usedWords = new Set()) {
+  const available = WORDS.filter(w => !usedWords.has(w));
+  const pool = available.length >= count ? available : WORDS;
+  return shuffle(pool).slice(0, count);
 }
 
 function makeHint(word) {
@@ -174,6 +257,7 @@ function createRoom(hostSocket, username) {
     guessedCount: 0,
     screenshotReceived: false,
     avatarCounter: 0,
+    usedWords: new Set(),
   };
 
   addPlayerToRoom(room, hostSocket, username);
@@ -199,6 +283,7 @@ function startGame(room) {
   room.phase = 'playing';
   room.screenshots = [];
   room.currentRound = 0;
+  room.usedWords = new Set();
 
   // Build drawer order from connected players, shuffled
   room.drawerOrder = shuffle([...room.players.keys()].filter(id => room.players.get(id).connected));
@@ -270,7 +355,7 @@ function startTurn(room) {
     if (id !== drawerId) p.hasGuessed = false;
   }
 
-  room.wordChoices = pickWords(3);
+  room.wordChoices = pickWords(3, room.usedWords);
 
   // Notify drawer of word choices
   io.to(drawerId).emit('word-choices', {
@@ -310,6 +395,7 @@ function beginDrawing(room, word) {
 
   room.phase = 'drawing';
   room.currentWord = word;
+  room.usedWords.add(word);
   room.turnStartTime = Date.now() + 3000; // account for countdown
 
   const drawerId = room.drawerOrder[room.drawerIndex];
@@ -785,6 +871,7 @@ io.on('connection', (socket) => {
     room.drawerOrder = [];
     room.drawerIndex = 0;
     room.guessedCount = 0;
+    room.usedWords = new Set();
 
     for (const p of room.players.values()) {
       p.score = 0;
@@ -837,11 +924,13 @@ app.get('/gallery', (_req, res) => {
 });
 
 app.get('/api/gallery/drawers', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const drawers = selectDrawers.all().map(r => r.drawer);
   res.json({ drawers });
 });
 
 app.get('/api/gallery', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
   const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit)  || 48));
   const offset = Math.max(0, parseInt(req.query.offset) || 0);
   const drawer = req.query.drawer ? String(req.query.drawer) : null;
