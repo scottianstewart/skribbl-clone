@@ -24,7 +24,10 @@
   ══════════════════════════════════════════════════════════════════ -->
     <div id="screen-lobby" class="screen active">
       <div class="lobby-card">
-        <a href="/gallery" class="gallery-link">🚪 View Gallery</a>
+        <div class="lobby-links">
+          <a href="/gallery" class="gallery-link">🚪 Gallery</a>
+          <a href="/high-scores" class="gallery-link">🏆 High Scores</a>
+        </div>
         <h1 class="logo">
           Lunch <span class="ampersand-animation">&</span> Draw
         </h1>
@@ -135,7 +138,10 @@
         </div>
 
         <div id="word-area">
-          <div id="word-hint"></div>
+          <div class="hint-row">
+            <div id="word-hint"></div>
+            <div id="word-meta" class="hidden"></div>
+          </div>
           <div id="drawer-choosing-msg" class="hidden">
             <span id="choosing-name"></span> is choosing a word…
           </div>

@@ -1,13 +1,13 @@
-'use strict';
+"use strict";
 
-const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-const path = require('path');
-const Database = require('better-sqlite3');
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
+const Database = require("better-sqlite3");
 
 // ─── Database ─────────────────────────────────────────────────────────────────
-const dbPath = process.env.DB_PATH || path.join(__dirname, 'gallery.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, "gallery.db");
 const db = new Database(dbPath);
 db.exec(`
   CREATE TABLE IF NOT EXISTS gallery_items (
@@ -18,151 +18,755 @@ db.exec(`
     round      INTEGER NOT NULL,
     played_at  TEXT    DEFAULT (datetime('now')),
     image_data TEXT    NOT NULL
-  )
+  );
+  CREATE TABLE IF NOT EXISTS player_scores (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_name TEXT    NOT NULL,
+    score       INTEGER NOT NULL,
+    room_code   TEXT    NOT NULL,
+    played_at   TEXT    DEFAULT (datetime('now'))
+  );
 `);
 const insertItem = db.prepare(
-  'INSERT INTO gallery_items (word, drawer, room_code, round, image_data) VALUES (?, ?, ?, ?, ?)'
+  "INSERT INTO gallery_items (word, drawer, room_code, round, image_data) VALUES (?, ?, ?, ?, ?)",
 );
 const selectItems = db.prepare(
-  'SELECT id, word, drawer, room_code, round, played_at FROM gallery_items ORDER BY id DESC LIMIT ? OFFSET ?'
+  "SELECT id, word, drawer, room_code, round, played_at FROM gallery_items ORDER BY id DESC LIMIT ? OFFSET ?",
 );
 const selectItemsByDrawer = db.prepare(
-  'SELECT id, word, drawer, room_code, round, played_at FROM gallery_items WHERE drawer = ? ORDER BY id DESC LIMIT ? OFFSET ?'
+  "SELECT id, word, drawer, room_code, round, played_at FROM gallery_items WHERE drawer = ? ORDER BY id DESC LIMIT ? OFFSET ?",
 );
-const countItems = db.prepare('SELECT COUNT(*) as total FROM gallery_items');
-const countItemsByDrawer = db.prepare('SELECT COUNT(*) as total FROM gallery_items WHERE drawer = ?');
-const selectDrawers = db.prepare('SELECT DISTINCT drawer FROM gallery_items ORDER BY drawer COLLATE NOCASE ASC');
+const countItems = db.prepare("SELECT COUNT(*) as total FROM gallery_items");
+const countItemsByDrawer = db.prepare(
+  "SELECT COUNT(*) as total FROM gallery_items WHERE drawer = ?",
+);
+const selectDrawers = db.prepare(
+  "SELECT DISTINCT drawer FROM gallery_items ORDER BY drawer COLLATE NOCASE ASC",
+);
 const selectItemById = db.prepare(
-  'SELECT id, word, drawer, room_code, round, played_at, image_data FROM gallery_items WHERE id = ?'
+  "SELECT id, word, drawer, room_code, round, played_at, image_data FROM gallery_items WHERE id = ?",
 );
+const insertScore = db.prepare(
+  "INSERT INTO player_scores (player_name, score, room_code) VALUES (?, ?, ?)",
+);
+const selectHighScores = db.prepare(`
+  SELECT player_name, SUM(score) as total_score, COUNT(*) as games_played
+  FROM player_scores
+  GROUP BY player_name COLLATE NOCASE
+  ORDER BY total_score DESC
+  LIMIT 100
+`);
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, { cors: { origin: "*" } });
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, "public")));
 
 // ─── Word List ────────────────────────────────────────────────────────────────
 const WORDS = [
   // Animals
-  'cat', 'dog', 'horse', 'elephant', 'penguin', 'shark', 'dolphin', 'eagle',
-  'tiger', 'rabbit', 'frog', 'butterfly', 'whale', 'crocodile', 'giraffe',
-  'owl', 'parrot', 'turtle', 'bear', 'fox', 'wolf', 'deer', 'monkey', 'fish',
-  'lobster', 'scorpion', 'snail', 'peacock', 'flamingo', 'kangaroo',
-  'lion', 'zebra', 'rhino', 'hippo', 'cheetah', 'gorilla', 'panda', 'koala',
-  'llama', 'alpaca', 'hedgehog', 'beaver', 'otter', 'seal', 'walrus',
-  'pelican', 'toucan', 'chameleon', 'iguana', 'cobra', 'octopus', 'jellyfish',
-  'crab', 'starfish', 'seahorse', 'hamster', 'squirrel', 'chipmunk', 'skunk',
-  'raccoon', 'moose', 'bison', 'camel', 'platypus', 'sloth', 'armadillo',
-  'anteater', 'meerkat', 'lemur', 'orangutan', 'chimpanzee', 'baboon',
-  'swan', 'goose', 'duck', 'rooster', 'chicken', 'turkey', 'pigeon', 'crow',
-  'stork', 'heron', 'woodpecker', 'sparrow', 'hummingbird', 'bat', 'mole',
-  'weasel', 'ferret', 'lynx', 'puma', 'jaguar', 'panther', 'hyena', 'jackal',
-  'manatee', 'narwhal', 'stingray', 'piranha', 'swordfish', 'clownfish',
-  'crayfish', 'shrimp', 'oyster', 'clam', 'mussel', 'snapper', 'caterpillar',
-  'dragonfly', 'grasshopper', 'beetle', 'ladybug', 'firefly', 'mosquito',
-  'spider', 'tarantula', 'centipede', 'worm', 'slug', 'praying mantis',
+  "cat",
+  "dog",
+  "horse",
+  "elephant",
+  "penguin",
+  "shark",
+  "dolphin",
+  "eagle",
+  "tiger",
+  "rabbit",
+  "frog",
+  "butterfly",
+  "whale",
+  "crocodile",
+  "giraffe",
+  "owl",
+  "parrot",
+  "turtle",
+  "bear",
+  "fox",
+  "wolf",
+  "deer",
+  "monkey",
+  "fish",
+  "lobster",
+  "scorpion",
+  "snail",
+  "peacock",
+  "flamingo",
+  "kangaroo",
+  "lion",
+  "zebra",
+  "rhino",
+  "hippo",
+  "cheetah",
+  "gorilla",
+  "panda",
+  "koala",
+  "llama",
+  "alpaca",
+  "hedgehog",
+  "beaver",
+  "otter",
+  "seal",
+  "walrus",
+  "pelican",
+  "toucan",
+  "chameleon",
+  "iguana",
+  "cobra",
+  "octopus",
+  "jellyfish",
+  "crab",
+  "starfish",
+  "seahorse",
+  "hamster",
+  "squirrel",
+  "chipmunk",
+  "skunk",
+  "raccoon",
+  "moose",
+  "bison",
+  "camel",
+  "platypus",
+  "sloth",
+  "armadillo",
+  "anteater",
+  "meerkat",
+  "lemur",
+  "orangutan",
+  "chimpanzee",
+  "baboon",
+  "swan",
+  "goose",
+  "duck",
+  "rooster",
+  "chicken",
+  "turkey",
+  "pigeon",
+  "crow",
+  "stork",
+  "heron",
+  "woodpecker",
+  "sparrow",
+  "hummingbird",
+  "bat",
+  "mole",
+  "weasel",
+  "ferret",
+  "lynx",
+  "puma",
+  "jaguar",
+  "panther",
+  "hyena",
+  "jackal",
+  "manatee",
+  "narwhal",
+  "stingray",
+  "piranha",
+  "swordfish",
+  "clownfish",
+  "crayfish",
+  "shrimp",
+  "oyster",
+  "clam",
+  "mussel",
+  "snapper",
+  "caterpillar",
+  "dragonfly",
+  "grasshopper",
+  "beetle",
+  "ladybug",
+  "firefly",
+  "mosquito",
+  "spider",
+  "tarantula",
+  "centipede",
+  "worm",
+  "slug",
+  "praying mantis",
   // Food
-  'pizza', 'apple', 'banana', 'cake', 'hamburger', 'sushi', 'strawberry',
-  'watermelon', 'corn', 'carrot', 'mushroom', 'cheese', 'donut', 'taco',
-  'sandwich', 'cookie', 'lemon', 'cherry', 'grapes', 'pineapple', 'broccoli',
-  'popcorn', 'muffin', 'pretzel', 'noodles', 'toast', 'avocado', 'waffle',
-  'hotdog', 'cupcake',
-  'spaghetti', 'lasagna', 'burrito', 'pancake', 'omelette', 'bacon',
-  'steak', 'cheeseburger', 'ramen', 'dumpling', 'spring roll', 'fried rice',
-  'croissant', 'bagel', 'baguette', 'pita', 'focaccia', 'tiramisu',
-  'cheesecake', 'brownie', 'ice cream', 'milkshake', 'smoothie', 'lemonade',
-  'espresso', 'cappuccino', 'hot chocolate', 'orange juice',
-  'mango', 'papaya', 'kiwi', 'coconut', 'fig', 'blueberry', 'raspberry',
-  'peach', 'pear', 'plum', 'apricot', 'melon', 'dragonfruit', 'lychee',
-  'turnip', 'radish', 'beet', 'sweet potato', 'asparagus', 'artichoke',
-  'cauliflower', 'cabbage', 'kale', 'spinach', 'celery', 'cucumber',
-  'zucchini', 'eggplant', 'bell pepper', 'pumpkin', 'garlic', 'onion',
-  'nacho', 'quesadilla', 'guacamole', 'hummus', 'kebab', 'mac and cheese',
-  'grilled cheese', 'French fries', 'onion rings', 'chicken wings',
-  'smore', 'cotton candy', 'candy cane', 'lollipop', 'gummy bear',
-  'fortune cookie', 'rice ball', 'boba tea', 'snow cone', 'churro',
+  "pizza",
+  "apple",
+  "banana",
+  "cake",
+  "hamburger",
+  "sushi",
+  "strawberry",
+  "watermelon",
+  "corn",
+  "carrot",
+  "mushroom",
+  "cheese",
+  "donut",
+  "taco",
+  "sandwich",
+  "cookie",
+  "lemon",
+  "cherry",
+  "grapes",
+  "pineapple",
+  "broccoli",
+  "popcorn",
+  "muffin",
+  "pretzel",
+  "noodles",
+  "toast",
+  "avocado",
+  "waffle",
+  "hotdog",
+  "cupcake",
+  "spaghetti",
+  "lasagna",
+  "burrito",
+  "pancake",
+  "omelette",
+  "bacon",
+  "steak",
+  "cheeseburger",
+  "ramen",
+  "dumpling",
+  "spring roll",
+  "fried rice",
+  "croissant",
+  "bagel",
+  "baguette",
+  "pita",
+  "focaccia",
+  "tiramisu",
+  "cheesecake",
+  "brownie",
+  "ice cream",
+  "milkshake",
+  "smoothie",
+  "lemonade",
+  "espresso",
+  "cappuccino",
+  "hot chocolate",
+  "orange juice",
+  "mango",
+  "papaya",
+  "kiwi",
+  "coconut",
+  "fig",
+  "blueberry",
+  "raspberry",
+  "peach",
+  "pear",
+  "plum",
+  "apricot",
+  "melon",
+  "dragonfruit",
+  "lychee",
+  "turnip",
+  "radish",
+  "beet",
+  "sweet potato",
+  "asparagus",
+  "artichoke",
+  "cauliflower",
+  "cabbage",
+  "kale",
+  "spinach",
+  "celery",
+  "cucumber",
+  "zucchini",
+  "eggplant",
+  "bell pepper",
+  "pumpkin",
+  "garlic",
+  "onion",
+  "nacho",
+  "quesadilla",
+  "guacamole",
+  "hummus",
+  "kebab",
+  "mac and cheese",
+  "grilled cheese",
+  "French fries",
+  "onion rings",
+  "chicken wings",
+  "smore",
+  "cotton candy",
+  "candy cane",
+  "lollipop",
+  "gummy bear",
+  "fortune cookie",
+  "rice ball",
+  "boba tea",
+  "snow cone",
+  "churro",
   // Objects
-  'chair', 'table', 'lamp', 'telephone', 'umbrella', 'key', 'clock',
-  'bicycle', 'anchor', 'camera', 'compass', 'hammer', 'scissors', 'trophy',
-  'suitcase', 'guitar', 'crown', 'bell', 'book', 'candle', 'envelope',
-  'glasses', 'hat', 'magnet', 'mirror', 'ring', 'rope', 'shield', 'sword',
-  'backpack', 'television', 'computer', 'phone', 'speaker', 'headphones',
-  'lantern', 'barrel', 'bucket', 'ladder', 'telescope', 'microscope',
-  'hourglass', 'chess', 'dice', 'kite', 'drum', 'trumpet', 'violin', 'piano',
-  'pencil', 'crayon', 'ruler', 'stapler', 'tape', 'wallet', 'purse',
-  'necklace', 'bracelet', 'watch', 'map', 'globe', 'calculator', 'abacus',
-  'typewriter', 'record player', 'flashlight', 'lighter', 'fire extinguisher',
-  'screwdriver', 'drill', 'axe', 'shovel', 'rake', 'watering can', 'vase',
-  'picture frame', 'mailbox', 'trash can', 'shopping cart', 'gift box',
-  'confetti', 'fireworks', 'pinata', 'party hat', 'medal', 'diploma',
-  'graduation cap', 'stethoscope', 'thermometer', 'bandage', 'crutch',
-  'wheelchair', 'magnifying glass', 'binoculars', 'periscope',
-  'alarm clock', 'lightbulb', 'battery', 'power outlet',
-  'wrench', 'pliers', 'saw', 'pickaxe', 'pitchfork',
-  'safe', 'padlock', 'handcuffs', 'badge', 'megaphone', 'microphone',
-  'accordion', 'harp', 'tuba', 'saxophone', 'flute', 'xylophone', 'banjo',
-  'ukulele', 'cello', 'clarinet', 'harmonica', 'tambourine', 'maracas',
-  'bowling ball', 'baseball bat', 'tennis racket', 'golf club', 'dumbbell',
-  'boxing gloves', 'football', 'basketball', 'soccer ball', 'volleyball',
-  'frisbee', 'dart', 'boomerang', 'slingshot', 'yo-yo', 'spinning top',
-  'puppet', 'teddy bear', 'jack-in-the-box', 'rocking horse', 'dollhouse',
-  'abacus', 'chessboard', 'jigsaw puzzle', 'rubiks cube',
+  "chair",
+  "table",
+  "lamp",
+  "telephone",
+  "umbrella",
+  "key",
+  "clock",
+  "bicycle",
+  "anchor",
+  "camera",
+  "compass",
+  "hammer",
+  "scissors",
+  "trophy",
+  "suitcase",
+  "guitar",
+  "crown",
+  "bell",
+  "book",
+  "candle",
+  "envelope",
+  "glasses",
+  "hat",
+  "magnet",
+  "mirror",
+  "ring",
+  "rope",
+  "shield",
+  "sword",
+  "backpack",
+  "television",
+  "computer",
+  "phone",
+  "speaker",
+  "headphones",
+  "lantern",
+  "barrel",
+  "bucket",
+  "ladder",
+  "telescope",
+  "microscope",
+  "hourglass",
+  "chess",
+  "dice",
+  "kite",
+  "drum",
+  "trumpet",
+  "violin",
+  "piano",
+  "pencil",
+  "crayon",
+  "ruler",
+  "stapler",
+  "tape",
+  "wallet",
+  "purse",
+  "necklace",
+  "bracelet",
+  "watch",
+  "map",
+  "globe",
+  "calculator",
+  "abacus",
+  "typewriter",
+  "record player",
+  "flashlight",
+  "lighter",
+  "fire extinguisher",
+  "screwdriver",
+  "drill",
+  "axe",
+  "shovel",
+  "rake",
+  "watering can",
+  "vase",
+  "picture frame",
+  "mailbox",
+  "trash can",
+  "shopping cart",
+  "gift box",
+  "confetti",
+  "fireworks",
+  "pinata",
+  "party hat",
+  "medal",
+  "diploma",
+  "graduation cap",
+  "stethoscope",
+  "thermometer",
+  "bandage",
+  "crutch",
+  "wheelchair",
+  "magnifying glass",
+  "binoculars",
+  "periscope",
+  "alarm clock",
+  "lightbulb",
+  "battery",
+  "power outlet",
+  "wrench",
+  "pliers",
+  "saw",
+  "pickaxe",
+  "pitchfork",
+  "safe",
+  "padlock",
+  "handcuffs",
+  "badge",
+  "megaphone",
+  "microphone",
+  "accordion",
+  "harp",
+  "tuba",
+  "saxophone",
+  "flute",
+  "xylophone",
+  "banjo",
+  "ukulele",
+  "cello",
+  "clarinet",
+  "harmonica",
+  "tambourine",
+  "maracas",
+  "bowling ball",
+  "baseball bat",
+  "tennis racket",
+  "golf club",
+  "dumbbell",
+  "boxing gloves",
+  "football",
+  "basketball",
+  "soccer ball",
+  "volleyball",
+  "frisbee",
+  "dart",
+  "boomerang",
+  "slingshot",
+  "yo-yo",
+  "spinning top",
+  "puppet",
+  "teddy bear",
+  "jack-in-the-box",
+  "rocking horse",
+  "dollhouse",
+  "abacus",
+  "chessboard",
+  "jigsaw puzzle",
+  "rubiks cube",
   // Places / Nature
-  'mountain', 'island', 'volcano', 'beach', 'forest', 'castle', 'rainbow',
-  'river', 'cave', 'desert', 'lighthouse', 'bridge', 'waterfall', 'cloud',
-  'moon', 'sun', 'star', 'snowflake', 'tornado', 'tree', 'flower', 'cactus',
-  'wave', 'iceberg', 'cliff', 'lake', 'valley', 'canyon', 'glacier', 'pond',
-  'jungle', 'swamp', 'savanna', 'meadow', 'tundra', 'prairie', 'plateau',
-  'delta', 'fjord', 'oasis', 'lagoon', 'bay', 'harbor', 'pier', 'reef',
-  'peninsula', 'atoll', 'dune', 'geyser', 'hot spring', 'mud volcano',
-  'aurora', 'meteor', 'comet', 'solar eclipse', 'lightning', 'thundercloud',
-  'fog', 'hail', 'blizzard', 'sandstorm', 'typhoon', 'hurricane',
-  'palm tree', 'pine tree', 'oak tree', 'bamboo', 'mangrove', 'tumbleweed',
-  'mushroom', 'fern', 'lily pad', 'seaweed', 'coral', 'stalactite',
-  'pyramid', 'sphinx', 'colosseum', 'stonehenge', 'igloo', 'tepee', 'pagoda',
-  'skyscraper', 'windmill', 'dam', 'oil rig', 'power plant', 'factory',
-  'greenhouse', 'barn', 'silo', 'well', 'fountain', 'garden',
+  "mountain",
+  "island",
+  "volcano",
+  "beach",
+  "forest",
+  "castle",
+  "rainbow",
+  "river",
+  "cave",
+  "desert",
+  "lighthouse",
+  "bridge",
+  "waterfall",
+  "cloud",
+  "moon",
+  "sun",
+  "star",
+  "snowflake",
+  "tornado",
+  "tree",
+  "flower",
+  "cactus",
+  "wave",
+  "iceberg",
+  "cliff",
+  "lake",
+  "valley",
+  "canyon",
+  "glacier",
+  "pond",
+  "jungle",
+  "swamp",
+  "savanna",
+  "meadow",
+  "tundra",
+  "prairie",
+  "plateau",
+  "delta",
+  "fjord",
+  "oasis",
+  "lagoon",
+  "bay",
+  "harbor",
+  "pier",
+  "reef",
+  "peninsula",
+  "atoll",
+  "dune",
+  "geyser",
+  "hot spring",
+  "mud volcano",
+  "aurora",
+  "meteor",
+  "comet",
+  "solar eclipse",
+  "lightning",
+  "thundercloud",
+  "fog",
+  "hail",
+  "blizzard",
+  "sandstorm",
+  "typhoon",
+  "hurricane",
+  "palm tree",
+  "pine tree",
+  "oak tree",
+  "bamboo",
+  "mangrove",
+  "tumbleweed",
+  "mushroom",
+  "fern",
+  "lily pad",
+  "seaweed",
+  "coral",
+  "stalactite",
+  "pyramid",
+  "sphinx",
+  "colosseum",
+  "stonehenge",
+  "igloo",
+  "tepee",
+  "pagoda",
+  "skyscraper",
+  "windmill",
+  "dam",
+  "oil rig",
+  "power plant",
+  "factory",
+  "greenhouse",
+  "barn",
+  "silo",
+  "well",
+  "fountain",
+  "garden",
   // Transport
-  'rocket', 'boat', 'train', 'airplane', 'helicopter', 'submarine', 'balloon',
-  'skateboard', 'motorcycle', 'truck', 'canoe', 'spaceship', 'tractor',
-  'parachute', 'tank', 'bulldozer', 'sailboat', 'ambulance', 'bus', 'scooter',
-  'jet ski', 'snowmobile', 'golf cart', 'forklift', 'crane', 'dump truck',
-  'cement mixer', 'fire truck', 'police car', 'taxi', 'limousine',
-  'hot air balloon', 'blimp', 'glider', 'hang glider', 'seaplane',
-  'hovercraft', 'ferry', 'cruise ship', 'aircraft carrier', 'tugboat',
-  'barge', 'gondola', 'kayak', 'raft', 'surfboard', 'snowboard',
-  'bobsled', 'dogsled', 'rickshaw', 'carriage', 'chariot',
-  'cable car', 'monorail', 'tram', 'trolley', 'subway', 'unicycle',
+  "rocket",
+  "boat",
+  "train",
+  "airplane",
+  "helicopter",
+  "submarine",
+  "balloon",
+  "skateboard",
+  "motorcycle",
+  "truck",
+  "canoe",
+  "spaceship",
+  "tractor",
+  "parachute",
+  "tank",
+  "bulldozer",
+  "sailboat",
+  "ambulance",
+  "bus",
+  "scooter",
+  "jet ski",
+  "snowmobile",
+  "golf cart",
+  "forklift",
+  "crane",
+  "dump truck",
+  "cement mixer",
+  "fire truck",
+  "police car",
+  "taxi",
+  "limousine",
+  "hot air balloon",
+  "blimp",
+  "glider",
+  "hang glider",
+  "seaplane",
+  "hovercraft",
+  "ferry",
+  "cruise ship",
+  "aircraft carrier",
+  "tugboat",
+  "barge",
+  "gondola",
+  "kayak",
+  "raft",
+  "surfboard",
+  "snowboard",
+  "bobsled",
+  "dogsled",
+  "rickshaw",
+  "carriage",
+  "chariot",
+  "cable car",
+  "monorail",
+  "tram",
+  "trolley",
+  "subway",
+  "unicycle",
   // People / Costumes
-  'pirate', 'wizard', 'robot', 'knight', 'astronaut', 'ninja', 'chef',
-  'doctor', 'clown', 'superhero', 'cowboy', 'viking', 'mummy', 'ghost',
-  'vampire', 'witch', 'ballerina', 'firefighter', 'detective', 'king',
-  'queen', 'princess', 'prince', 'pharaoh', 'samurai', 'gladiator',
-  'archer', 'jester', 'monk', 'priest', 'shaman', 'magician',
-  'acrobat', 'juggler', 'mime', 'conductor', 'singer', 'DJ',
-  'dancer', 'actor', 'journalist', 'scientist', 'professor', 'engineer',
-  'architect', 'lawyer', 'judge', 'police officer', 'paramedic', 'nurse',
-  'surgeon', 'dentist', 'veterinarian', 'farmer', 'fisherman', 'lumberjack',
-  'miner', 'blacksmith', 'carpenter', 'plumber', 'electrician',
-  'sculptor', 'potter', 'weaver', 'tailor', 'baker', 'butcher',
-  'gardener', 'florist', 'barber', 'photographer', 'pilot', 'sailor',
-  'soldier', 'spy', 'alien', 'angel', 'devil', 'skeleton', 'zombie',
-  'werewolf', 'genie', 'fairy', 'elf', 'dwarf', 'troll', 'ogre', 'dragon',
-  'mermaid', 'unicorn', 'phoenix', 'yeti', 'bigfoot',
+  "pirate",
+  "wizard",
+  "robot",
+  "knight",
+  "astronaut",
+  "ninja",
+  "chef",
+  "doctor",
+  "clown",
+  "superhero",
+  "cowboy",
+  "viking",
+  "mummy",
+  "ghost",
+  "vampire",
+  "witch",
+  "ballerina",
+  "firefighter",
+  "detective",
+  "king",
+  "queen",
+  "princess",
+  "prince",
+  "pharaoh",
+  "samurai",
+  "gladiator",
+  "archer",
+  "jester",
+  "monk",
+  "priest",
+  "shaman",
+  "magician",
+  "acrobat",
+  "juggler",
+  "mime",
+  "conductor",
+  "singer",
+  "DJ",
+  "dancer",
+  "actor",
+  "journalist",
+  "scientist",
+  "professor",
+  "engineer",
+  "architect",
+  "lawyer",
+  "judge",
+  "police officer",
+  "paramedic",
+  "nurse",
+  "surgeon",
+  "dentist",
+  "veterinarian",
+  "farmer",
+  "fisherman",
+  "lumberjack",
+  "miner",
+  "blacksmith",
+  "carpenter",
+  "plumber",
+  "electrician",
+  "sculptor",
+  "potter",
+  "weaver",
+  "tailor",
+  "baker",
+  "butcher",
+  "gardener",
+  "florist",
+  "barber",
+  "photographer",
+  "pilot",
+  "sailor",
+  "soldier",
+  "spy",
+  "alien",
+  "angel",
+  "devil",
+  "skeleton",
+  "zombie",
+  "werewolf",
+  "genie",
+  "fairy",
+  "elf",
+  "dwarf",
+  "troll",
+  "ogre",
+  "dragon",
+  "mermaid",
+  "unicorn",
+  "phoenix",
+  "yeti",
+  "bigfoot",
   // Actions / Misc
-  'swimming', 'jumping', 'climbing', 'dancing', 'sleeping', 'cooking',
-  'flying', 'running', 'reading', 'painting', 'throwing', 'fishing', 'digging',
-  'skating', 'surfing', 'building', 'planting', 'pushing', 'laughing', 'crying',
-  'walking', 'hiking', 'jogging', 'crawling', 'crouching', 'waving',
-  'pointing', 'clapping', 'hugging', 'whistling', 'singing', 'shouting',
-  'whispering', 'thinking', 'dreaming', 'yawning', 'sneezing', 'stretching',
-  'weightlifting', 'yoga', 'meditating', 'celebrating', 'cheering', 'rowing',
-  'skiing', 'sledding', 'ice skating', 'cycling', 'horse riding',
-  'rock climbing', 'bungee jumping', 'skydiving', 'scuba diving', 'snorkeling',
-  'archery', 'fencing', 'boxing', 'wrestling', 'bowling', 'golfing',
-  'knitting', 'sewing', 'baking', 'carving', 'welding', 'typing', 'coding',
-  'shopping', 'texting', 'selfie', 'video call', 'opening presents',
+  "swimming",
+  "jumping",
+  "climbing",
+  "dancing",
+  "sleeping",
+  "cooking",
+  "flying",
+  "running",
+  "reading",
+  "painting",
+  "throwing",
+  "fishing",
+  "digging",
+  "skating",
+  "surfing",
+  "building",
+  "planting",
+  "pushing",
+  "laughing",
+  "crying",
+  "walking",
+  "hiking",
+  "jogging",
+  "crawling",
+  "crouching",
+  "waving",
+  "pointing",
+  "clapping",
+  "hugging",
+  "whistling",
+  "singing",
+  "shouting",
+  "whispering",
+  "thinking",
+  "dreaming",
+  "yawning",
+  "sneezing",
+  "stretching",
+  "weightlifting",
+  "yoga",
+  "meditating",
+  "celebrating",
+  "cheering",
+  "rowing",
+  "skiing",
+  "sledding",
+  "ice skating",
+  "cycling",
+  "horse riding",
+  "rock climbing",
+  "bungee jumping",
+  "skydiving",
+  "scuba diving",
+  "snorkeling",
+  "archery",
+  "fencing",
+  "boxing",
+  "wrestling",
+  "bowling",
+  "golfing",
+  "knitting",
+  "sewing",
+  "baking",
+  "carving",
+  "welding",
+  "typing",
+  "coding",
+  "shopping",
+  "texting",
+  "selfie",
+  "video call",
+  "opening presents",
 ];
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
@@ -180,13 +784,16 @@ function shuffle(arr) {
 }
 
 function pickWords(count, usedWords = new Set()) {
-  const available = WORDS.filter(w => !usedWords.has(w));
+  const available = WORDS.filter((w) => !usedWords.has(w));
   const pool = available.length >= count ? available : WORDS;
   return shuffle(pool).slice(0, count);
 }
 
 function makeHint(word) {
-  return word.split('').map(c => (c === ' ' ? '  ' : '_')).join(' ');
+  return word
+    .split(" ")
+    .map((w) => Array.from(w).fill("_").join(" "))
+    .join(" | ");
 }
 
 function getTimeRemaining(room) {
@@ -196,11 +803,11 @@ function getTimeRemaining(room) {
 }
 
 function getConnectedPlayers(room) {
-  return [...room.players.values()].filter(p => p.connected);
+  return [...room.players.values()].filter((p) => p.connected);
 }
 
 function getPlayersArray(room) {
-  return [...room.players.values()].map(p => ({
+  return [...room.players.values()].map((p) => ({
     id: p.id,
     name: p.name,
     score: p.score,
@@ -212,13 +819,13 @@ function getPlayersArray(room) {
 function getOpenRooms() {
   const result = [];
   for (const room of rooms.values()) {
-    if (room.phase !== 'waiting') continue;
+    if (room.phase !== "waiting") continue;
     const connected = getConnectedPlayers(room);
     if (connected.length === 0) continue;
     const host = room.players.get(room.hostId);
     result.push({
       code: room.code,
-      hostName: host ? host.name : '?',
+      hostName: host ? host.name : "?",
       playerCount: connected.length,
       config: room.config,
     });
@@ -227,7 +834,7 @@ function getOpenRooms() {
 }
 
 function broadcastOpenRooms() {
-  io.emit('open-rooms', getOpenRooms());
+  io.emit("open-rooms", getOpenRooms());
 }
 
 // ─── Room State ───────────────────────────────────────────────────────────────
@@ -236,13 +843,15 @@ const socketRoom = new Map(); // socketId → roomCode
 
 function createRoom(hostSocket, username) {
   let code;
-  do { code = randomCode(); } while (rooms.has(code));
+  do {
+    code = randomCode();
+  } while (rooms.has(code));
 
   const room = {
     code,
     hostId: hostSocket.id,
     players: new Map(),
-    phase: 'waiting',
+    phase: "waiting",
     config: { rounds: 3, timeLimit: 80 },
     currentRound: 0,
     drawerOrder: [],
@@ -280,13 +889,15 @@ function addPlayerToRoom(room, socket, username) {
 
 // ─── Game Flow ────────────────────────────────────────────────────────────────
 function startGame(room) {
-  room.phase = 'playing';
+  room.phase = "playing";
   room.screenshots = [];
   room.currentRound = 0;
   room.usedWords = new Set();
 
   // Build drawer order from connected players, shuffled
-  room.drawerOrder = shuffle([...room.players.keys()].filter(id => room.players.get(id).connected));
+  room.drawerOrder = shuffle(
+    [...room.players.keys()].filter((id) => room.players.get(id).connected),
+  );
   room.drawerIndex = 0;
 
   // Reset scores
@@ -295,7 +906,7 @@ function startGame(room) {
     p.hasGuessed = false;
   }
 
-  io.to(room.code).emit('game-starting', {});
+  io.to(room.code).emit("game-starting", {});
   setTimeout(() => startRound(room, 1), 500);
 }
 
@@ -307,7 +918,7 @@ function startRound(room, roundNum) {
     p.hasGuessed = false;
   }
 
-  io.to(room.code).emit('round-start', {
+  io.to(room.code).emit("round-start", {
     round: roundNum,
     totalRounds: room.config.rounds,
   });
@@ -328,7 +939,9 @@ function startTurn(room) {
     // All drawers in this round done
     if (room.currentRound < room.config.rounds) {
       // Keep same drawer order each round; filter out anyone who disconnected
-      room.drawerOrder = room.drawerOrder.filter(id => room.players.get(id)?.connected);
+      room.drawerOrder = room.drawerOrder.filter(
+        (id) => room.players.get(id)?.connected,
+      );
       room.drawerIndex = 0;
       startRound(room, room.currentRound + 1);
     } else {
@@ -345,7 +958,7 @@ function startTurn(room) {
     return;
   }
 
-  room.phase = 'choosing';
+  room.phase = "choosing";
   room.strokeHistory = [];
   room.guessedCount = 0;
   room.screenshotReceived = false;
@@ -358,21 +971,23 @@ function startTurn(room) {
   room.wordChoices = pickWords(3, room.usedWords);
 
   // Notify drawer of word choices
-  io.to(drawerId).emit('word-choices', {
+  io.to(drawerId).emit("word-choices", {
     words: room.wordChoices,
     drawerId,
     drawerName: drawer.name,
   });
 
   // Notify others that drawer is choosing
-  io.to(room.code).except(drawerId).emit('chat-message', {
-    id: Date.now(),
-    name: 'Game',
-    message: `${drawer.name} is choosing a word...`,
-    type: 'system',
-  });
+  io.to(room.code)
+    .except(drawerId)
+    .emit("chat-message", {
+      id: Date.now(),
+      name: "Game",
+      message: `${drawer.name} is choosing a word...`,
+      type: "system",
+    });
 
-  io.to(room.code).emit('drawer-choosing', {
+  io.to(room.code).emit("drawer-choosing", {
     drawerId,
     drawerName: drawer.name,
     round: room.currentRound,
@@ -381,7 +996,7 @@ function startTurn(room) {
 
   // Auto-pick if drawer doesn't choose in time
   room.choiceTimer = setTimeout(() => {
-    if (room.phase === 'choosing') {
+    if (room.phase === "choosing") {
       beginDrawing(room, room.wordChoices[0]);
     }
   }, 15000);
@@ -393,7 +1008,7 @@ function beginDrawing(room, word) {
     room.choiceTimer = null;
   }
 
-  room.phase = 'drawing';
+  room.phase = "drawing";
   room.currentWord = word;
   room.usedWords.add(word);
   room.turnStartTime = Date.now() + 3000; // account for countdown
@@ -406,9 +1021,9 @@ function beginDrawing(room, word) {
   // Send word to drawer, hint to others
   const turnScores = getPlayersArray(room);
 
-  io.to(drawerId).emit('turn-start', {
+  io.to(drawerId).emit("turn-start", {
     drawerId,
-    drawerName: drawer?.name || 'Unknown',
+    drawerName: drawer?.name || "Unknown",
     word,
     hint,
     isDrawer: true,
@@ -419,22 +1034,24 @@ function beginDrawing(room, word) {
     scores: turnScores,
   });
 
-  io.to(room.code).except(drawerId).emit('turn-start', {
-    drawerId,
-    drawerName: drawer?.name || 'Unknown',
-    hint,
-    isDrawer: false,
-    timeLimit: room.config.timeLimit,
-    round: room.currentRound,
-    totalRounds: room.config.rounds,
-    strokeHistory: [],
-    scores: turnScores,
-  });
+  io.to(room.code)
+    .except(drawerId)
+    .emit("turn-start", {
+      drawerId,
+      drawerName: drawer?.name || "Unknown",
+      hint,
+      isDrawer: false,
+      timeLimit: room.config.timeLimit,
+      round: room.currentRound,
+      totalRounds: room.config.rounds,
+      strokeHistory: [],
+      scores: turnScores,
+    });
 
   // Run countdown 3-2-1
   let count = 3;
   const countdownInterval = setInterval(() => {
-    io.to(room.code).emit('countdown', { count });
+    io.to(room.code).emit("countdown", { count });
     count--;
     if (count < 0) {
       clearInterval(countdownInterval);
@@ -447,11 +1064,11 @@ function beginDrawing(room, word) {
 function startDrawingTimer(room) {
   let timeLeft = room.config.timeLimit;
 
-  io.to(room.code).emit('timer-update', { timeLeft });
+  io.to(room.code).emit("timer-update", { timeLeft });
 
   room.timer = setInterval(() => {
     timeLeft--;
-    io.to(room.code).emit('timer-update', { timeLeft });
+    io.to(room.code).emit("timer-update", { timeLeft });
 
     if (timeLeft <= 0) {
       clearInterval(room.timer);
@@ -464,7 +1081,7 @@ function startDrawingTimer(room) {
 function checkAllGuessed(room) {
   const drawerId = room.drawerOrder[room.drawerIndex];
   const connectedNonDrawers = [...room.players.entries()].filter(
-    ([id, p]) => id !== drawerId && p.connected
+    ([id, p]) => id !== drawerId && p.connected,
   );
 
   if (connectedNonDrawers.length === 0) return false;
@@ -472,7 +1089,12 @@ function checkAllGuessed(room) {
 }
 
 function endTurn(room, allGuessed) {
-  if (room.phase === 'reveal' || room.phase === 'waiting' || room.phase === 'end') return;
+  if (
+    room.phase === "reveal" ||
+    room.phase === "waiting" ||
+    room.phase === "end"
+  )
+    return;
 
   if (room.timer) {
     clearInterval(room.timer);
@@ -483,7 +1105,7 @@ function endTurn(room, allGuessed) {
     room.choiceTimer = null;
   }
 
-  room.phase = 'reveal';
+  room.phase = "reveal";
 
   const drawerId = room.drawerOrder[room.drawerIndex];
   const drawer = room.players.get(drawerId);
@@ -496,7 +1118,7 @@ function endTurn(room, allGuessed) {
   const scores = getPlayersArray(room);
 
   // Broadcast turn end with word reveal
-  io.to(room.code).emit('turn-end', {
+  io.to(room.code).emit("turn-end", {
     word: room.currentWord,
     scores,
     drawerId,
@@ -536,7 +1158,7 @@ function storeScreenshot(room, imageData) {
 
   room.screenshots.push({
     word: room.currentWord,
-    drawer: drawer?.name || 'Unknown',
+    drawer: drawer?.name || "Unknown",
     round: room.currentRound,
     imageData,
   });
@@ -547,13 +1169,13 @@ function storeScreenshot(room, imageData) {
 function finalizeTurn(room) {
   room.drawerIndex++;
   setTimeout(() => {
-    if (room.phase !== 'reveal') return;
+    if (room.phase !== "reveal") return;
     startTurn(room);
   }, 4000);
 }
 
 function endGame(room) {
-  room.phase = 'end';
+  room.phase = "end";
 
   if (room.timer) {
     clearInterval(room.timer);
@@ -569,7 +1191,12 @@ function endGame(room) {
     }
   }
 
-  io.to(room.code).emit('game-end', {
+  // Persist player scores
+  for (const p of finalScores) {
+    insertScore.run(p.name, p.score, room.code);
+  }
+
+  io.to(room.code).emit("game-end", {
     finalScores,
     screenshots: room.screenshots,
   });
@@ -606,17 +1233,17 @@ function handleDisconnect(socket) {
     newHostId = room.hostId;
   }
 
-  io.to(code).emit('player-left', {
+  io.to(code).emit("player-left", {
     playerId: socket.id,
     playerName: player.name,
     players: getPlayersArray(room),
     newHostId,
   });
 
-  if (room.phase === 'waiting') broadcastOpenRooms();
+  if (room.phase === "waiting") broadcastOpenRooms();
 
   // Handle mid-game disconnects
-  if (room.phase === 'drawing' || room.phase === 'choosing') {
+  if (room.phase === "drawing" || room.phase === "choosing") {
     const drawerId = room.drawerOrder[room.drawerIndex];
 
     if (drawerId === socket.id) {
@@ -632,7 +1259,7 @@ function handleDisconnect(socket) {
         endTurn(room, true);
       }
     }
-  } else if (room.phase === 'reveal') {
+  } else if (room.phase === "reveal") {
     // Screenshot sender disconnected — just finalize
     if (!room.screenshotReceived) {
       room.screenshotReceived = true;
@@ -641,15 +1268,19 @@ function handleDisconnect(socket) {
   }
 
   // If only 1 player left and game was running, end it
-  if (connected.length === 1 && room.phase !== 'waiting' && room.phase !== 'end') {
+  if (
+    connected.length === 1 &&
+    room.phase !== "waiting" &&
+    room.phase !== "end"
+  ) {
     endGame(room);
   }
 }
 
 // ─── Socket Handlers ──────────────────────────────────────────────────────────
-io.on('connection', (socket) => {
-  socket.on('join-room', ({ username, roomCode }) => {
-    if (!username || typeof username !== 'string') return;
+io.on("connection", (socket) => {
+  socket.on("join-room", ({ username, roomCode }) => {
+    if (!username || typeof username !== "string") return;
     const name = username.trim().slice(0, 20);
     if (!name) return;
 
@@ -659,11 +1290,11 @@ io.on('connection', (socket) => {
       const code = roomCode.trim().toUpperCase();
       room = rooms.get(code);
       if (!room) {
-        socket.emit('join-error', { message: 'Room not found.' });
+        socket.emit("join-error", { message: "Room not found." });
         return;
       }
-      if (room.phase !== 'waiting') {
-        socket.emit('join-error', { message: 'Game already in progress.' });
+      if (room.phase !== "waiting") {
+        socket.emit("join-error", { message: "Game already in progress." });
         return;
       }
       addPlayerToRoom(room, socket, name);
@@ -673,7 +1304,7 @@ io.on('connection', (socket) => {
 
     const isHost = room.hostId === socket.id;
 
-    socket.emit('room-joined', {
+    socket.emit("room-joined", {
       roomCode: room.code,
       players: getPlayersArray(room),
       isHost,
@@ -682,36 +1313,45 @@ io.on('connection', (socket) => {
 
     // Notify others
     const newPlayer = room.players.get(socket.id);
-    socket.to(room.code).emit('player-joined', {
-      player: { id: socket.id, name, score: 0, hasGuessed: false, avatarIndex: newPlayer.avatarIndex },
+    socket.to(room.code).emit("player-joined", {
+      player: {
+        id: socket.id,
+        name,
+        score: 0,
+        hasGuessed: false,
+        avatarIndex: newPlayer.avatarIndex,
+      },
     });
 
     // System message
-    io.to(room.code).emit('chat-message', {
+    io.to(room.code).emit("chat-message", {
       id: Date.now(),
-      name: 'Game',
+      name: "Game",
       message: `${name} joined the room.`,
-      type: 'system',
+      type: "system",
     });
 
     broadcastOpenRooms();
   });
 
-  socket.on('update-config', ({ rounds, timeLimit }) => {
+  socket.on("update-config", ({ rounds, timeLimit }) => {
     const code = socketRoom.get(socket.id);
     const room = rooms.get(code);
-    if (!room || room.hostId !== socket.id || room.phase !== 'waiting') return;
+    if (!room || room.hostId !== socket.id || room.phase !== "waiting") return;
 
     room.config.rounds = Math.min(10, Math.max(1, parseInt(rounds) || 3));
-    room.config.timeLimit = Math.min(120, Math.max(30, parseInt(timeLimit) || 80));
+    room.config.timeLimit = Math.min(
+      120,
+      Math.max(30, parseInt(timeLimit) || 80),
+    );
 
-    io.to(code).emit('config-updated', { config: room.config });
+    io.to(code).emit("config-updated", { config: room.config });
   });
 
-  socket.on('start-game', () => {
+  socket.on("start-game", () => {
     const code = socketRoom.get(socket.id);
     const room = rooms.get(code);
-    if (!room || room.hostId !== socket.id || room.phase !== 'waiting') return;
+    if (!room || room.hostId !== socket.id || room.phase !== "waiting") return;
 
     const connected = getConnectedPlayers(room);
     if (connected.length < 2) return;
@@ -720,10 +1360,10 @@ io.on('connection', (socket) => {
     broadcastOpenRooms();
   });
 
-  socket.on('choose-word', ({ word }) => {
+  socket.on("choose-word", ({ word }) => {
     const code = socketRoom.get(socket.id);
     const room = rooms.get(code);
-    if (!room || room.phase !== 'choosing') return;
+    if (!room || room.phase !== "choosing") return;
 
     const drawerId = room.drawerOrder[room.drawerIndex];
     if (drawerId !== socket.id) return;
@@ -733,10 +1373,10 @@ io.on('connection', (socket) => {
     beginDrawing(room, word);
   });
 
-  socket.on('draw-stroke', (stroke) => {
+  socket.on("draw-stroke", (stroke) => {
     const code = socketRoom.get(socket.id);
     const room = rooms.get(code);
-    if (!room || room.phase !== 'drawing') return;
+    if (!room || room.phase !== "drawing") return;
 
     const drawerId = room.drawerOrder[room.drawerIndex];
     if (drawerId !== socket.id) return;
@@ -747,41 +1387,50 @@ io.on('connection', (socket) => {
       y0: Number(stroke.y0),
       x1: Number(stroke.x1),
       y1: Number(stroke.y1),
-      color: String(stroke.color || '#000000').slice(0, 20),
+      color: String(stroke.color || "#000000").slice(0, 20),
       size: Math.min(50, Math.max(1, Number(stroke.size) || 6)),
-      tool: stroke.tool === 'eraser' ? 'eraser' : 'pen',
+      tool: stroke.tool === "eraser" ? "eraser" : "pen",
     };
 
     room.strokeHistory.push(s);
-    socket.to(code).emit('stroke', s);
+    socket.to(code).emit("stroke", s);
   });
 
-  socket.on('clear-canvas', () => {
+  socket.on("clear-canvas", () => {
     const code = socketRoom.get(socket.id);
     const room = rooms.get(code);
-    if (!room || room.phase !== 'drawing') return;
+    if (!room || room.phase !== "drawing") return;
 
     const drawerId = room.drawerOrder[room.drawerIndex];
     if (drawerId !== socket.id) return;
 
     room.strokeHistory = [];
-    socket.to(code).emit('clear-canvas', {});
+    socket.to(code).emit("clear-canvas", {});
   });
 
-  socket.on('submit-guess', ({ guess }) => {
+  socket.on("submit-guess", ({ guess }) => {
     const code = socketRoom.get(socket.id);
     const room = rooms.get(code);
-    if (!room || room.phase !== 'drawing') return;
+    if (!room || room.phase !== "drawing") return;
 
     const player = room.players.get(socket.id);
     if (!player) return;
 
-    const drawerId = room.drawerOrder[room.drawerIndex];
-    if (socket.id === drawerId) return; // drawer can't guess
-    if (player.hasGuessed) return; // already guessed
-
-    const trimmed = String(guess || '').trim();
+    const trimmed = String(guess || "").trim();
     if (!trimmed || trimmed.length > 100) return;
+
+    const drawerId = room.drawerOrder[room.drawerIndex];
+
+    // Drawer or already-guessed players send as chat, not a guess
+    if (socket.id === drawerId || player.hasGuessed) {
+      io.to(code).emit("chat-message", {
+        id: Date.now(),
+        name: player.name,
+        message: trimmed,
+        type: "chat",
+      });
+      return;
+    }
 
     const correct = trimmed.toLowerCase() === room.currentWord?.toLowerCase();
 
@@ -792,26 +1441,28 @@ io.on('connection', (socket) => {
       // Calculate score based on time remaining
       const timeRemaining = getTimeRemaining(room);
       const isFirst = room.guessedCount === 1;
-      let points = Math.floor(200 + 600 * (timeRemaining / room.config.timeLimit));
+      let points = Math.floor(
+        200 + 600 * (timeRemaining / room.config.timeLimit),
+      );
       if (isFirst) points += 50; // first guesser bonus
       player.score += points;
 
       // Tell guesser their result
-      socket.emit('guess-result', { correct: true, points });
+      socket.emit("guess-result", { correct: true, points });
 
       // Notify everyone (without revealing the word)
-      io.to(code).emit('player-guessed', {
+      io.to(code).emit("player-guessed", {
         playerId: socket.id,
         playerName: player.name,
         points,
         scores: getPlayersArray(room),
       });
 
-      io.to(code).emit('chat-message', {
+      io.to(code).emit("chat-message", {
         id: Date.now(),
         name: player.name,
         message: `guessed the word! (+${points} pts)`,
-        type: 'correct',
+        type: "correct",
       });
 
       if (checkAllGuessed(room)) {
@@ -823,34 +1474,37 @@ io.on('connection', (socket) => {
       }
     } else {
       // Broadcast guess as chat
-      io.to(code).emit('chat-message', {
+      io.to(code).emit("chat-message", {
         id: Date.now(),
         name: player.name,
         message: trimmed,
-        type: 'chat',
+        type: "chat",
       });
 
       // Close guess hint (within 1 edit distance ignoring case)
       if (room.currentWord && isCloseGuess(trimmed, room.currentWord)) {
-        socket.emit('chat-message', {
+        socket.emit("chat-message", {
           id: Date.now(),
-          name: 'Game',
+          name: "Game",
           message: `You're close!`,
-          type: 'close',
+          type: "close",
         });
       }
 
-      socket.emit('guess-result', { correct: false });
+      socket.emit("guess-result", { correct: false });
     }
   });
 
-  socket.on('canvas-screenshot', ({ imageData }) => {
+  socket.on("canvas-screenshot", ({ imageData }) => {
     const code = socketRoom.get(socket.id);
     const room = rooms.get(code);
-    if (!room || room.phase !== 'reveal') return;
+    if (!room || room.phase !== "reveal") return;
     if (socket.id !== room.revealDrawerId) return;
 
-    if (typeof imageData === 'string' && imageData.startsWith('data:image/png;base64,')) {
+    if (
+      typeof imageData === "string" &&
+      imageData.startsWith("data:image/png;base64,")
+    ) {
       storeScreenshot(room, imageData);
     } else {
       room.screenshotReceived = true;
@@ -858,12 +1512,12 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('play-again', () => {
+  socket.on("play-again", () => {
     const code = socketRoom.get(socket.id);
     const room = rooms.get(code);
-    if (!room || room.hostId !== socket.id || room.phase !== 'end') return;
+    if (!room || room.hostId !== socket.id || room.phase !== "end") return;
 
-    room.phase = 'waiting';
+    room.phase = "waiting";
     room.screenshots = [];
     room.strokeHistory = [];
     room.currentWord = null;
@@ -878,7 +1532,7 @@ io.on('connection', (socket) => {
       p.hasGuessed = false;
     }
 
-    io.to(code).emit('room-reset', {
+    io.to(code).emit("room-reset", {
       players: getPlayersArray(room),
       config: room.config,
     });
@@ -886,11 +1540,11 @@ io.on('connection', (socket) => {
     broadcastOpenRooms();
   });
 
-  socket.on('get-open-rooms', () => {
-    socket.emit('open-rooms', getOpenRooms());
+  socket.on("get-open-rooms", () => {
+    socket.emit("open-rooms", getOpenRooms());
   });
 
-  socket.on('disconnect', () => {
+  socket.on("disconnect", () => {
     handleDisconnect(socket);
   });
 });
@@ -904,55 +1558,69 @@ function isCloseGuess(guess, word) {
 }
 
 function levenshtein(a, b) {
-  const m = a.length, n = b.length;
+  const m = a.length,
+    n = b.length;
   const dp = Array.from({ length: m + 1 }, (_, i) =>
-    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
   );
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      dp[i][j] = a[i - 1] === b[j - 1]
-        ? dp[i - 1][j - 1]
-        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
     }
   }
   return dp[m][n];
 }
 
 // ─── Gallery Routes ───────────────────────────────────────────────────────────
-app.get('/gallery', (_req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'gallery.html'));
+app.get("/gallery", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "gallery.html"));
 });
 
-app.get('/api/gallery/drawers', (_req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  const drawers = selectDrawers.all().map(r => r.drawer);
+app.get("/high-scores", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "high-scores.html"));
+});
+
+app.get("/api/high-scores", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const scores = selectHighScores.all();
+  res.json({ scores });
+});
+
+app.get("/api/gallery/drawers", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const drawers = selectDrawers.all().map((r) => r.drawer);
   res.json({ drawers });
 });
 
-app.get('/api/gallery', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  const limit  = Math.min(100, Math.max(1, parseInt(req.query.limit)  || 48));
+app.get("/api/gallery", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 48));
   const offset = Math.max(0, parseInt(req.query.offset) || 0);
   const drawer = req.query.drawer ? String(req.query.drawer) : null;
-  const items  = drawer ? selectItemsByDrawer.all(drawer, limit, offset) : selectItems.all(limit, offset);
+  const items = drawer
+    ? selectItemsByDrawer.all(drawer, limit, offset)
+    : selectItems.all(limit, offset);
   const { total } = drawer ? countItemsByDrawer.get(drawer) : countItems.get();
   res.json({ items, total, limit, offset });
 });
 
-app.get('/api/gallery/:id/image', (req, res) => {
+app.get("/api/gallery/:id/image", (req, res) => {
   const row = selectItemById.get(parseInt(req.params.id));
   if (!row) return res.status(404).end();
   // image_data is "data:image/png;base64,..."
-  const base64 = row.image_data.replace(/^data:image\/png;base64,/, '');
-  const buf = Buffer.from(base64, 'base64');
-  res.setHeader('Content-Type', 'image/png');
-  res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  const base64 = row.image_data.replace(/^data:image\/png;base64,/, "");
+  const buf = Buffer.from(base64, "base64");
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
   res.end(buf);
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, '0.0.0.0', () => {
+const PORT = process.env.PORT || 3005;
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`\n🎨 Skribbl Clone running at http://localhost:${PORT}`);
   console.log(`   Share with coworkers on your local network!\n`);
 });

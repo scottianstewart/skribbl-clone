@@ -8,6 +8,7 @@ const SOUNDS = {
   correctGuess: new Audio("/sounds/correct-guess.mp3"),
   gameEnd: new Audio("/sounds/game-end.mp3"),
   countdownTick: new Audio("/sounds/countdown-tick.mp3"),
+  chatMessage: new Audio("/sounds/chat-message.mp3"),
 };
 
 let masterVolume = parseFloat(localStorage.getItem("masterVolume") ?? "0.2");
@@ -53,6 +54,20 @@ const waitingScreen = document.getElementById("screen-waiting");
 const gameScreen = document.getElementById("screen-game");
 const endScreen = document.getElementById("screen-end");
 
+// ─── Button Sound Effects ─────────────────────────────────────────────────────
+function addButtonSounds() {
+  // Choose a sound name for button clicks
+  const soundName = "correctGuess"; // Change to desired sound
+  document.querySelectorAll("button").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      playSound(soundName);
+    });
+  });
+}
+
+// Call this after DOM is ready
+window.addEventListener("DOMContentLoaded", addButtonSounds);
+
 const usernameInput = document.getElementById("username-input");
 const roomCodeInput = document.getElementById("room-code-input");
 const btnCreate = document.getElementById("btn-create");
@@ -81,6 +96,7 @@ const roundIndicator = document.getElementById("round-indicator");
 const currentRoundEl = document.getElementById("current-round");
 const totalRoundsEl = document.getElementById("total-rounds");
 const wordHint = document.getElementById("word-hint");
+const wordMeta = document.getElementById("word-meta");
 const drawerChoosingMsg = document.getElementById("drawer-choosing-msg");
 const choosingName = document.getElementById("choosing-name");
 const wordChoicesEl = document.getElementById("word-choices");
@@ -300,9 +316,7 @@ btnClear.addEventListener("click", () => {
 function sendGuess() {
   const text = chatInput.value.trim();
   if (!text) return;
-  if (!isDrawer) {
-    socket.emit("submit-guess", { guess: text });
-  }
+  socket.emit("submit-guess", { guess: text });
   chatInput.value = "";
 }
 
@@ -375,8 +389,23 @@ function updateScoreboard(players, drawerId) {
 
 // ─── Hint display ─────────────────────────────────────────────────────────────
 function showHint(hint) {
-  wordHint.textContent = hint;
+  const parts = hint.split(" | ");
+  const wordCount = parts.length;
+  const letterCount = parts.reduce(
+    (sum, p) => sum + p.replace(/ /g, "").length,
+    0,
+  );
+
+  wordHint.innerHTML = parts
+    .map((p) => `<span class="hint-word">${escHtml(p)}</span>`)
+    .join('<span class="hint-sep"> | </span>');
   wordHint.classList.remove("hidden");
+
+  wordMeta.innerHTML =
+    `${wordCount} word${wordCount !== 1 ? "s" : ""}` +
+    `<br>${letterCount} letter${letterCount !== 1 ? "s" : ""}`;
+  wordMeta.classList.remove("hidden");
+
   drawerChoosingMsg.classList.add("hidden");
   wordChoicesEl.classList.add("hidden");
 }
@@ -633,6 +662,7 @@ socket.on("join-error", ({ message }) => {
 socket.on("player-joined", ({ player }) => {
   waitingPlayers.set(player.id, player);
   renderWaitingPlayers([...waitingPlayers.values()]);
+  playSound("correctGuess");
 });
 
 socket.on("player-left", ({ playerId, playerName, players, newHostId }) => {
@@ -782,10 +812,11 @@ socket.on(
       // Show actual word
       wordHint.textContent = word;
       wordHint.classList.remove("hidden");
+      wordMeta.classList.add("hidden");
       canvas.classList.remove("is-viewer");
       toolPanel.classList.remove("hidden");
-      chatInput.disabled = true;
-      chatInput.placeholder = "You are drawing!";
+      chatInput.disabled = false;
+      chatInput.placeholder = "You are drawing… (type to chat)";
       buildColorPalette();
     } else {
       showHint(hint);
@@ -851,16 +882,15 @@ socket.on("timer-update", ({ timeLeft }) => {
 
 socket.on("chat-message", ({ id, name, message, type }) => {
   addChatMessage({ name, message, type });
+  playSound(type === "correct" ? "correctGuess" : "chatMessage");
 });
 
 socket.on("player-guessed", ({ playerId, playerName, points, scores }) => {
-  playSound("correctGuess");
   updateScoreboard(scores, currentDrawerId);
 });
 
 socket.on("guess-result", ({ correct, points }) => {
   if (correct) {
-    chatInput.disabled = true;
     chatInput.placeholder = `Correct! +${points} pts`;
   }
 });
@@ -871,6 +901,7 @@ socket.on("turn-end", ({ word, scores, drawerId }) => {
   // Reveal word to everyone
   wordHint.textContent = word;
   wordHint.classList.remove("hidden");
+  wordMeta.classList.add("hidden");
   wordChoicesEl.classList.add("hidden");
 
   addChatMessage({

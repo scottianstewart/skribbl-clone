@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>High Scores — Lunch & Draw</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #faf6ee;
+        --surface: #fffdf8;
+        --paper-2: #f0e8d6;
+        --ink: #1c1009;
+        --ink-light: #5a4535;
+        --ink-muted: #8a7060;
+        --accent: #c8513a;
+        --border: #1c1009;
+        --radius: 3px;
+        --radius-sm: 2px;
+        --shadow-ink: 4px 4px 0 #1c1009;
+        --shadow-ink-sm: 2px 2px 0 #1c1009;
+        --shadow-ink-lg: 6px 6px 0 #1c1009;
+        --font: "Caveat", cursive;
+        --warning: #c07830;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: var(--font);
+        background-color: var(--bg);
+        background-image: repeating-linear-gradient(
+          transparent 0px, transparent 31px,
+          rgba(28,16,9,0.055) 31px, rgba(28,16,9,0.055) 32px
+        );
+        color: var(--ink);
+        min-height: 100vh;
+      }
+
+      nav {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 24px;
+        background: var(--paper-2);
+        border-bottom: 2.5px solid var(--ink);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      .nav-back {
+        font-family: var(--font);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ink-light);
+        text-decoration: none;
+        padding: 4px 14px;
+        border: 2px dashed var(--ink-light);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        transition: all 0.15s;
+      }
+      .nav-back:hover { color: var(--ink); border-color: var(--ink); }
+      .nav-gallery {
+        font-family: var(--font);
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ink-light);
+        text-decoration: none;
+        padding: 4px 14px;
+        border: 2px dashed var(--ink-light);
+        border-radius: var(--radius-sm);
+        background: var(--surface);
+        transition: all 0.15s;
+      }
+      .nav-gallery:hover { color: var(--ink); border-color: var(--ink); }
+
+      header {
+        text-align: center;
+        padding: 48px 24px 32px;
+      }
+      header h1 {
+        font-size: 56px;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+      header p {
+        font-size: 20px;
+        color: var(--ink-muted);
+        margin-top: 8px;
+        font-style: italic;
+      }
+
+      main {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 0 24px 64px;
+      }
+
+      .status-message {
+        text-align: center;
+        font-size: 22px;
+        color: var(--ink-muted);
+        padding: 48px 0;
+        font-style: italic;
+      }
+
+      .scores-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .score-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 14px 20px;
+        background: var(--surface);
+        border: 2px solid var(--ink);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-ink-sm);
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .score-row:first-child {
+        background: #fef9e0;
+        border-width: 2.5px;
+        box-shadow: var(--shadow-ink);
+        font-size: 26px;
+      }
+      .score-row:nth-child(2) { font-size: 24px; }
+      .score-row:nth-child(3) { font-size: 23px; }
+
+      .score-rank {
+        font-size: 28px;
+        min-width: 40px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .score-row:first-child .score-rank { font-size: 36px; }
+
+      .score-name {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .score-total {
+        color: var(--accent);
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .score-games {
+        font-size: 14px;
+        color: var(--ink-muted);
+        font-weight: 700;
+        white-space: nowrap;
+        min-width: 64px;
+        text-align: right;
+      }
+
+      .play-link {
+        display: inline-block;
+        margin-top: 16px;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .play-link:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a href="/" class="nav-back">← Play</a>
+      <a href="/gallery" class="nav-gallery">🚪 Gallery</a>
+    </nav>
+
+    <header>
+      <h1>🏆 High Scores</h1>
+      <p>All-time total points across every game</p>
+    </header>
+
+    <main>
+      <div id="loading" class="status-message">Loading scores…</div>
+      <div id="empty" class="status-message" style="display:none">
+        <p>No scores yet — play a game first!</p>
+        <a href="/" class="play-link">Play now →</a>
+      </div>
+      <ol id="scores-list" class="scores-list" style="display:none"></ol>
+    </main>
+
+    <script>
+      const RANK_ICONS = ["🥇", "🥈", "🥉"];
+
+      function escHtml(str) {
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      async function loadScores() {
+        try {
+          const res = await fetch("/api/high-scores");
+          const { scores } = await res.json();
+
+          document.getElementById("loading").style.display = "none";
+
+          if (!scores || scores.length === 0) {
+            document.getElementById("empty").style.display = "block";
+            return;
+          }
+
+          const list = document.getElementById("scores-list");
+          list.style.display = "flex";
+
+          scores.forEach((row, i) => {
+            const li = document.createElement("li");
+            li.className = "score-row";
+            li.innerHTML = `
+              <span class="score-rank">${RANK_ICONS[i] ?? (i + 1) + "."}</span>
+              <span class="score-name">${escHtml(row.player_name)}</span>
+              <span class="score-games">${row.games_played} game${row.games_played !== 1 ? "s" : ""}</span>
+              <span class="score-total">${row.total_score.toLocaleString()} pts</span>
+            `;
+            list.appendChild(li);
+          });
+        } catch (_) {
+          document.getElementById("loading").textContent =
+            "Could not load scores.";
+        }
+      }
+
+      loadScores();
+    </script>
+  </body>
+</html>
